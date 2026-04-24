@@ -111,10 +111,26 @@ export default function App() {
 
   function handleDeleteRow(index: number) {
     if (!activeTable || !activeFilename) return
+    const deletedRow = activeTable.rows[index]
+    const filename = activeFilename
     const rows = activeTable.rows.filter((_, i) => i !== index)
-    const next = { ...session, [activeFilename]: { ...activeTable, rows } }
+    const next = { ...session, [filename]: { ...activeTable, rows } }
     updateSession(next)
-    toast.success('Row deleted')
+    toast.success('Row deleted', {
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          setSession(prev => {
+            const table = prev[filename]
+            if (!table) return prev
+            const restored = [...table.rows.slice(0, index), deletedRow, ...table.rows.slice(index)]
+            const updated = { ...prev, [filename]: { ...table, rows: restored } }
+            saveSession(updated)
+            return updated
+          })
+        },
+      },
+    })
   }
 
   function handleRowSubmit(row: Record<string, string>) {
