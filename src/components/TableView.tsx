@@ -63,7 +63,7 @@ export function TableView({ table, onEditRow }: Props) {
             </TableRow>
           ) : (
             table.rows.map((row, i) => (
-              <TableRow key={i} className="group hover:bg-muted/20">
+              <TableRow key={i} className="hover:bg-muted/20">
                 {table.columns.map(col => (
                   <TableCell key={col.name} className="font-mono text-sm py-2.5">
                     {row[col.name] || <span className="text-muted-foreground italic">—</span>}
@@ -73,7 +73,7 @@ export function TableView({ table, onEditRow }: Props) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
                     onClick={() => onEditRow(i)}
                   >
                     <Pencil className="w-3.5 h-3.5" />

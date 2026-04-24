@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Plus, Download, FolderOpen, Database } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -19,6 +19,7 @@ export default function App() {
   const [rowModalOpen, setRowModalOpen] = useState(false)
   const [editRowIndex, setEditRowIndex] = useState<number | null>(null)
   const [pendingFile, setPendingFile] = useState<PendingFile | null>(null)
+  const openInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const cached = loadCachedTable()
@@ -118,10 +119,24 @@ export default function App() {
         </div>
         {table && (
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setPendingFile({ content: '', filename: '' })}>
+            <Button variant="outline" size="sm" onClick={() => openInputRef.current?.click()}>
               <FolderOpen className="w-4 h-4 mr-1.5" />
               Open
             </Button>
+            <input
+              ref={openInputRef}
+              type="file"
+              accept=".txt"
+              className="hidden"
+              onChange={e => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                const reader = new FileReader()
+                reader.onload = ev => handleFile(ev.target?.result as string, file.name)
+                reader.readAsText(file)
+                e.target.value = ''
+              }}
+            />
             <Button variant="outline" size="sm" onClick={handleExport}>
               <Download className="w-4 h-4 mr-1.5" />
               Export
