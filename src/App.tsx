@@ -29,6 +29,7 @@ export default function App() {
   const [rowModal, setRowModal] = useState<{ open: boolean; editIndex: number | null }>({ open: false, editIndex: null })
   const [editColumnsOpen, setEditColumnsOpen] = useState(false)
   const [replaceWarning, setReplaceWarning] = useState<{ content: string; filename: string } | null>(null)
+  const [closeWarning, setCloseWarning] = useState<string | null>(null)
 
   const addTableRef = useRef<HTMLInputElement>(null)
 
@@ -75,6 +76,10 @@ export default function App() {
     else toast.success(`Loaded ${result.table.rows.length} row(s)`)
   }
 
+  function confirmRemoveTable(filename: string) {
+    setCloseWarning(filename)
+  }
+
   function handleRemoveTable(filename: string) {
     const next = { ...session }
     delete next[filename]
@@ -83,6 +88,7 @@ export default function App() {
       const keys = Object.keys(next)
       setActiveFilename(keys.length > 0 ? keys[0] : null)
     }
+    setCloseWarning(null)
   }
 
   function handleTabClick(filename: string) {
@@ -153,7 +159,7 @@ export default function App() {
             >
               <span>{tabLabel(fn)}</span>
               <button
-                onClick={e => { e.stopPropagation(); handleRemoveTable(fn) }}
+                onClick={e => { e.stopPropagation(); confirmRemoveTable(fn) }}
                 className="opacity-50 hover:opacity-100 transition-opacity rounded"
               >
                 <X className="w-3 h-3" />
@@ -252,6 +258,24 @@ export default function App() {
           />
         </>
       )}
+
+      <Dialog open={!!closeWarning} onOpenChange={o => !o && setCloseWarning(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Close table?</DialogTitle>
+            <DialogDescription>
+              <span className="font-mono font-medium text-foreground">{closeWarning ? tabLabel(closeWarning) : ''}</span>
+              {' '}will be removed from the session. Unsaved changes will be lost.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setCloseWarning(null)}>Nevermind</Button>
+            <Button variant="destructive" onClick={() => closeWarning && handleRemoveTable(closeWarning)}>
+              Close anyway
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!replaceWarning} onOpenChange={o => !o && setReplaceWarning(null)}>
         <DialogContent className="sm:max-w-sm">
