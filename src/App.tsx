@@ -175,35 +175,37 @@ export default function App() {
     toast.success('Columns updated')
   }
 
-  function withExportWarning(action: () => void) {
-    if (exportWarningSuppressed) { action(); return }
-    setDontShowAgain(false)
-    setExportWarning({ onConfirm: action })
-  }
-
-  function confirmExport() {
+  function dismissWarning() {
     if (dontShowAgain) {
       localStorage.setItem('similisql:export-warning-dismissed', 'true')
       setExportWarningSuppressed(true)
     }
-    exportWarning?.onConfirm()
-    setExportWarning(null)
   }
 
   function handleExportCurrent() {
     if (!activeTable || !activeFilename) return
-    withExportWarning(() => {
-      exportTable(activeTable!, activeFilename!)
+    if (exportWarningSuppressed) {
+      exportTable(activeTable, activeFilename)
       toast.success('File downloaded')
+      return
+    }
+    setDontShowAgain(false)
+    setExportWarning({
+      onConfirm: () => {
+        dismissWarning()
+        exportTable(activeTable!, activeFilename!)
+        toast.success('File downloaded')
+        setExportWarning(null)
+      },
     })
   }
 
   async function handleExportAll() {
-    withExportWarning(async () => {
-      await exportAllTables(session, exportFolderName)
-      setExportAllOpen(false)
-      toast.success(`${exportFolderName}.zip downloaded`)
-    })
+    if (!exportFolderName.trim()) return
+    dismissWarning()
+    await exportAllTables(session, exportFolderName)
+    setExportAllOpen(false)
+    toast.success(`${exportFolderName}.zip downloaded`)
   }
 
   const filenames = Object.keys(session)
@@ -349,6 +351,7 @@ export default function App() {
         </>
       )}
 
+      {/* Warning dialog — single file export only */}
       <Dialog open={!!exportWarning} onOpenChange={o => !o && setExportWarning(null)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
@@ -359,25 +362,21 @@ export default function App() {
               <DialogTitle>Overwrite warning</DialogTitle>
             </div>
             <DialogDescription className="pt-1">
-              If a file with this name already exists in your downloads folder, your browser may rename it automatically rather than overwrite it — this is a browser security restriction that can't be bypassed from a web app.
+              If a file with this name already exists in your downloads folder, your browser may rename it rather than overwrite it — this is a browser restriction that can't be bypassed from a web app.
             </DialogDescription>
           </DialogHeader>
           <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
-            <input
-              type="checkbox"
-              checked={dontShowAgain}
-              onChange={e => setDontShowAgain(e.target.checked)}
-              className="rounded border-input accent-primary w-4 h-4"
-            />
+            <input type="checkbox" checked={dontShowAgain} onChange={e => setDontShowAgain(e.target.checked)} className="rounded border-input accent-primary w-4 h-4" />
             <span className="text-sm text-muted-foreground">Don't show this again</span>
           </label>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setExportWarning(null)}>Cancel</Button>
-            <Button onClick={confirmExport}>Download anyway</Button>
+            <Button onClick={() => exportWarning?.onConfirm()}>Download anyway</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* Export all — warning inline, single dialog */}
       <Dialog open={exportAllOpen} onOpenChange={o => !o && setExportAllOpen(false)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
@@ -386,18 +385,32 @@ export default function App() {
               {Object.keys(session).length} table{Object.keys(session).length !== 1 ? 's' : ''} will be bundled into a ZIP file.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-1.5 py-2">
-            <Label className="text-sm">Archive name</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                value={exportFolderName}
-                onChange={e => setExportFolderName(e.target.value)}
-                className="font-mono text-sm"
-                onKeyDown={e => e.key === 'Enter' && exportFolderName.trim() && handleExportAll()}
-                autoFocus
-              />
-              <span className="text-sm text-muted-foreground shrink-0">.zip</span>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-sm">Archive name</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={exportFolderName}
+                  onChange={e => setExportFolderName(e.target.value)}
+                  className="font-mono text-sm"
+                  onKeyDown={e => e.key === 'Enter' && exportFolderName.trim() && handleExportAll()}
+                  autoFocus
+                />
+                <span className="text-sm text-muted-foreground shrink-0">.zip</span>
+              </div>
             </div>
+            {!exportWarningSuppressed && (
+              <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 space-y-2">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                  <p className="text-xs text-muted-foreground">If a file with this name already exists in your downloads folder, your browser may rename it rather than overwrite it — browser restriction, can't be bypassed.</p>
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input type="checkbox" checked={dontShowAgain} onChange={e => setDontShowAgain(e.target.checked)} className="rounded border-input accent-primary w-3.5 h-3.5" />
+                  <span className="text-xs text-muted-foreground">Don't show this again</span>
+                </label>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setExportAllOpen(false)}>Cancel</Button>
