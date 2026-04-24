@@ -36,12 +36,16 @@ export function exportTable(table: Table, filename: string): void {
   triggerDownload(blob, filename)
 }
 
-export async function exportAllTables(session: Session, folderName: string): Promise<void> {
+export async function generateZipBlob(session: Session): Promise<Blob> {
   const zip = new JSZip()
   for (const [filename, table] of Object.entries(session)) {
     zip.file(filename, serializeTable(table))
   }
-  const blob = await zip.generateAsync({ type: 'blob' })
+  return zip.generateAsync({ type: 'blob' })
+}
+
+export async function exportAllTables(session: Session, folderName: string): Promise<void> {
+  const blob = await generateZipBlob(session)
   triggerDownload(blob, `${folderName}.zip`)
 }
 

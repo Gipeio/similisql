@@ -11,9 +11,9 @@ import { FileDropZone } from '@/components/FileDropZone'
 import { TableView } from '@/components/TableView'
 import { AddRowModal } from '@/components/AddRowModal'
 import { EditColumnsModal } from '@/components/EditColumnsModal'
-import { OverwriteWarningModal } from '@/components/OverwriteWarningModal'
-import { parseFile } from '@/lib/parser'
-import { saveSession, loadSession, exportTable, exportAllTables, type Session } from '@/lib/storage'
+import { parseFile, serializeTable } from '@/lib/parser'
+import { saveSession, loadSession, exportTable, exportAllTables, generateZipBlob, type Session } from '@/lib/storage'
+import { FSA_SUPPORTED, pickAndWrite, writeToHandle } from '@/lib/fsa'
 import type { Column, Table } from '@/lib/types'
 
 function tabLabel(filename: string) {
@@ -50,6 +50,10 @@ export default function App() {
     () => localStorage.getItem('similisql:export-warning-dismissed') === 'true'
   )
   const [dontShowAgain, setDontShowAgain] = useState(false)
+  const [newTableOpen, setNewTableOpen] = useState(false)
+  const [newTableName, setNewTableName] = useState('')
+  const fileHandlesRef = useRef<Record<string, FileSystemFileHandle>>({})
+  const zipHandleRef = useRef<FileSystemFileHandle | null>(null)
 
   const addTableRef = useRef<HTMLInputElement>(null)
 
@@ -67,12 +71,23 @@ export default function App() {
     function onKeyDown(e: KeyboardEvent) {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault()
-        if (Object.keys(session).length > 0) setExportAllOpen(true)
+        if (Object.keys(session).length === 0) return
+        if (FSA_SUPPORTED && zipHandleRef.current) {
+          const handle = zipHandleRef.current
+          generateZipBlob(session).then(blob =>
+            writeToHandle(handle, blob).then(ok => {
+              if (ok) toast.success(`${exportFolderName}.zip saved`)
+              else setExportAllOpen(true)
+            })
+          )
+        } else {
+          setExportAllOpen(true)
+        }
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [session])
+  }, [session, exportFolderName])
 
   useEffect(() => {
     if (highlight !== null) {
@@ -125,6 +140,21 @@ export default function App() {
   function handleTabClick(filename: string) {
     setActiveFilename(filename)
     setHighlight(null)
+  }
+
+  function handleCreateTable() {
+    const name = newTableName.trim()
+    if (!name) return
+    const filename = name.endsWith('.ssql.txt') ? name : `${name}.ssql.txt`
+    if (filename in session) {
+      toast.error(`A table named "${tabLabel(filename)}" is already open`)
+      return
+    }
+    const next = { ...session, [filename]: { columns: [], rows: [] } }
+    updateSession(next)
+    setActiveFilename(filename)
+    setNewTableOpen(false)
+    setNewTableName('')
   }
 
   function handleFkClick(fkTable: string, fkColumn: string, value: string) {
@@ -193,8 +223,23 @@ export default function App() {
     }
   }
 
-  function handleExportCurrent() {
+  async function handleExportCurrent() {
     if (!activeTable || !activeFilename) return
+    if (FSA_SUPPORTED) {
+      const existingHandle = fileHandlesRef.current[activeFilename]
+      const blob = new Blob([serializeTable(activeTable)], { type: 'text/plain' })
+      if (existingHandle) {
+        const ok = await writeToHandle(existingHandle, blob)
+        if (ok) { toast.success(`${activeFilename} saved`); return }
+        // handle stale — fall through to picker
+      }
+      const handle = await pickAndWrite(blob, activeFilename, { 'text/plain': ['.txt'] as `.${string}`[] })
+      if (handle) {
+        fileHandlesRef.current[activeFilename] = handle
+        toast.success(`${activeFilename} saved`)
+      }
+      return
+    }
     if (exportWarningSuppressed) {
       exportTable(activeTable, activeFilename)
       toast.success('File downloaded')
@@ -213,6 +258,26 @@ export default function App() {
 
   async function handleExportAll() {
     if (!exportFolderName.trim()) return
+    if (FSA_SUPPORTED) {
+      const blob = await generateZipBlob(session)
+      // Re-use existing zip handle if name matches, otherwise pick new location
+      if (zipHandleRef.current) {
+        const ok = await writeToHandle(zipHandleRef.current, blob)
+        if (ok) {
+          setExportAllOpen(false)
+          toast.success(`${exportFolderName}.zip saved`)
+          return
+        }
+        // handle stale — fall through to picker
+      }
+      const handle = await pickAndWrite(blob, `${exportFolderName}.zip`, { 'application/zip': ['.zip'] as `.${string}`[] })
+      if (handle) {
+        zipHandleRef.current = handle
+        setExportAllOpen(false)
+        toast.success(`${exportFolderName}.zip saved`)
+      }
+      return
+    }
     dismissWarning()
     await exportAllTables(session, exportFolderName)
     setExportAllOpen(false)
@@ -254,7 +319,7 @@ export default function App() {
             </div>
           ))}
           <button
-            onClick={() => addTableRef.current?.click()}
+            onClick={() => { setNewTableName(''); setNewTableOpen(true) }}
             className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
           >
             <Plus className="w-4 h-4" />
@@ -269,6 +334,7 @@ export default function App() {
               if (!file) return
               readFile(file, loadIntoSession)
               e.target.value = ''
+              setNewTableOpen(false)
             }}
           />
         </div>
@@ -281,12 +347,10 @@ export default function App() {
               Edit columns
             </Button>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Download className="w-4 h-4 mr-1.5" />
-                  Export
-                  <ChevronDown className="w-3.5 h-3.5 ml-1.5 opacity-60" />
-                </Button>
+              <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+                <Download className="w-4 h-4 mr-1.5" />
+                Export
+                <ChevronDown className="w-3.5 h-3.5 ml-1.5 opacity-60" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={handleExportCurrent}>
@@ -410,7 +474,7 @@ export default function App() {
                 <span className="text-sm text-muted-foreground shrink-0">.zip</span>
               </div>
             </div>
-            {!exportWarningSuppressed && (
+            {!FSA_SUPPORTED && !exportWarningSuppressed && (
               <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 space-y-2">
                 <div className="flex items-start gap-2">
                   <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
@@ -466,6 +530,42 @@ export default function App() {
               if (replaceWarning) loadIntoSession(replaceWarning.content, replaceWarning.filename, true)
               setReplaceWarning(null)
             }}>Replace</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={newTableOpen} onOpenChange={o => !o && setNewTableOpen(false)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Add table</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-1">
+            <div className="space-y-1.5">
+              <Label className="text-sm">Table name</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={newTableName}
+                  onChange={e => setNewTableName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleCreateTable()}
+                  placeholder="my_table"
+                  className="font-mono text-sm"
+                  autoFocus
+                />
+                <span className="text-xs text-muted-foreground shrink-0">.ssql.txt</span>
+              </div>
+            </div>
+            <div className="relative flex items-center gap-3">
+              <div className="flex-1 border-t border-border" />
+              <span className="text-xs text-muted-foreground">or</span>
+              <div className="flex-1 border-t border-border" />
+            </div>
+            <Button variant="outline" className="w-full" onClick={() => addTableRef.current?.click()}>
+              Open existing file…
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setNewTableOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateTable} disabled={!newTableName.trim()}>Create</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
