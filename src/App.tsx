@@ -1,16 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { Plus, Download, FolderOpen, Database, Columns3, X } from 'lucide-react'
+import { Plus, Download, Database, Columns3, X, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { FileDropZone } from '@/components/FileDropZone'
 import { TableView } from '@/components/TableView'
 import { AddRowModal } from '@/components/AddRowModal'
 import { EditColumnsModal } from '@/components/EditColumnsModal'
 import { OverwriteWarningModal } from '@/components/OverwriteWarningModal'
 import { parseFile } from '@/lib/parser'
-import { saveSession, loadSession, exportTable, type Session } from '@/lib/storage'
+import { saveSession, loadSession, exportTable, exportAllTables, type Session } from '@/lib/storage'
 import type { Column, Table } from '@/lib/types'
 
 function tabLabel(filename: string) {
@@ -40,6 +43,8 @@ export default function App() {
   const [editColumnsOpen, setEditColumnsOpen] = useState(false)
   const [replaceWarning, setReplaceWarning] = useState<{ content: string; filename: string } | null>(null)
   const [closeWarning, setCloseWarning] = useState<string | null>(null)
+  const [exportAllOpen, setExportAllOpen] = useState(false)
+  const [exportFolderName, setExportFolderName] = useState('similisql-export')
 
   const addTableRef = useRef<HTMLInputElement>(null)
 
@@ -165,10 +170,16 @@ export default function App() {
     toast.success('Columns updated')
   }
 
-  function handleExport() {
+  function handleExportCurrent() {
     if (!activeTable || !activeFilename) return
     exportTable(activeTable, activeFilename)
     toast.success('File downloaded')
+  }
+
+  async function handleExportAll() {
+    await exportAllTables(session, exportFolderName)
+    setExportAllOpen(false)
+    toast.success(`${exportFolderName}.zip downloaded`)
   }
 
   const filenames = Object.keys(session)
@@ -232,10 +243,24 @@ export default function App() {
               <Columns3 className="w-4 h-4 mr-1.5" />
               Edit columns
             </Button>
-            <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="w-4 h-4 mr-1.5" />
-              Export
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Download className="w-4 h-4 mr-1.5" />
+                  Export
+                  <ChevronDown className="w-3.5 h-3.5 ml-1.5 opacity-60" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportCurrent}>
+                  Current table
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setExportAllOpen(true)}>
+                  All tables…
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button size="sm" onClick={() => setRowModal({ open: true, editIndex: null })}>
               <Plus className="w-4 h-4 mr-1.5" />
               Add row
@@ -299,6 +324,37 @@ export default function App() {
           />
         </>
       )}
+
+      <Dialog open={exportAllOpen} onOpenChange={o => !o && setExportAllOpen(false)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Export all tables</DialogTitle>
+            <DialogDescription>
+              {Object.keys(session).length} table{Object.keys(session).length !== 1 ? 's' : ''} will be bundled into a ZIP file.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1.5 py-2">
+            <Label className="text-sm">Archive name</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                value={exportFolderName}
+                onChange={e => setExportFolderName(e.target.value)}
+                className="font-mono text-sm"
+                onKeyDown={e => e.key === 'Enter' && exportFolderName.trim() && handleExportAll()}
+                autoFocus
+              />
+              <span className="text-sm text-muted-foreground shrink-0">.zip</span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setExportAllOpen(false)}>Cancel</Button>
+            <Button onClick={handleExportAll} disabled={!exportFolderName.trim()}>
+              <Download className="w-4 h-4 mr-1.5" />
+              Download
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!closeWarning} onOpenChange={o => !o && setCloseWarning(null)}>
         <DialogContent className="sm:max-w-sm">

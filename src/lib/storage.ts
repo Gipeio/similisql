@@ -1,3 +1,4 @@
+import JSZip from 'jszip'
 import { parseFile, serializeTable } from './parser'
 import type { Table } from './types'
 
@@ -31,8 +32,20 @@ export function loadSession(): Session {
 }
 
 export function exportTable(table: Table, filename: string): void {
-  const content = serializeTable(table)
-  const blob = new Blob([content], { type: 'text/plain' })
+  const blob = new Blob([serializeTable(table)], { type: 'text/plain' })
+  triggerDownload(blob, filename)
+}
+
+export async function exportAllTables(session: Session, folderName: string): Promise<void> {
+  const zip = new JSZip()
+  for (const [filename, table] of Object.entries(session)) {
+    zip.file(filename, serializeTable(table))
+  }
+  const blob = await zip.generateAsync({ type: 'blob' })
+  triggerDownload(blob, `${folderName}.zip`)
+}
+
+function triggerDownload(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
