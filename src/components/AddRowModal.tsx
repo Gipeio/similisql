@@ -81,13 +81,14 @@ interface Props {
   open: boolean
   table: Table
   session: Session
+  autoKeyName: string | null
   onClose: () => void
   onSubmit: (row: Record<string, string>) => void
   initialValues?: Record<string, string>
   mode?: 'add' | 'edit'
 }
 
-export function AddRowModal({ open, table, session, onClose, onSubmit, initialValues, mode = 'add' }: Props) {
+export function AddRowModal({ open, table, session, autoKeyName, onClose, onSubmit, initialValues, mode = 'add' }: Props) {
   const empty = () => Object.fromEntries(table.columns.map(c => [c.name, '']))
   const [values, setValues] = useState<Record<string, string>>(empty)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -124,7 +125,7 @@ export function AddRowModal({ open, table, session, onClose, onSubmit, initialVa
           <DialogTitle>{mode === 'edit' ? 'Edit row' : 'Add row'}</DialogTitle>
         </DialogHeader>
         <div className="overflow-y-auto flex-1 space-y-4 py-2 pr-1">
-          {table.columns.map(col => (
+          {table.columns.filter(col => mode === 'add' ? col.name !== autoKeyName : true).map(col => (
             <div key={col.name} className="space-y-1.5">
               <Label className="flex items-center gap-2 font-mono text-sm">
                 {col.name}
@@ -137,7 +138,13 @@ export function AddRowModal({ open, table, session, onClose, onSubmit, initialVa
                   </Badge>
                 )}
               </Label>
-              {col.fk ? (
+              {col.name === autoKeyName ? (
+                <Input
+                  value={initialValues?.[col.name] ?? ''}
+                  disabled
+                  className="font-mono text-sm opacity-50"
+                />
+              ) : col.fk ? (
                 <FkSelect
                   col={col as Column & { fk: NonNullable<Column['fk']> }}
                   session={session}

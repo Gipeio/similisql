@@ -61,6 +61,23 @@ export function parseFile(content: string): ParseResult {
     rows.push(row)
   }
 
+  // Validate auto-key: first column must be int with no FK, unique non-empty values
+  const keyCol = columns[0]
+  if (keyCol && keyCol.type === 'int' && !keyCol.fk) {
+    const seen = new Set<string>()
+    for (let i = 0; i < rows.length; i++) {
+      const val = rows[i][keyCol.name]
+      if (!val) continue
+      if (!/^-?\d+$/.test(val)) {
+        return { status: 'invalid', error: `Row ${i + 1}: "${keyCol.name}" must be an integer, got "${val}".` }
+      }
+      if (seen.has(val)) {
+        return { status: 'invalid', error: `Duplicate "${keyCol.name}" value: ${val}.` }
+      }
+      seen.add(val)
+    }
+  }
+
   return { status: 'valid', table: { columns, rows } }
 }
 

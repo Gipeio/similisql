@@ -17,6 +17,16 @@ function tabLabel(filename: string) {
   return filename.replace(/\.ssql\.txt$/, '').replace(/\.txt$/, '')
 }
 
+function getAutoKey(table: Table): Column | null {
+  const col = table.columns[0]
+  return col && col.type === 'int' && !col.fk ? col : null
+}
+
+function computeNextId(table: Table, keyName: string): string {
+  const ids = table.rows.map(r => parseInt(r[keyName], 10)).filter(n => !isNaN(n))
+  return ids.length === 0 ? '1' : String(Math.max(...ids) + 1)
+}
+
 function resolveFilenameByTableName(name: string, session: Session): string | null {
   return Object.keys(session).find(fn => tabLabel(fn) === name) ?? null
 }
@@ -135,9 +145,14 @@ export default function App() {
 
   function handleRowSubmit(row: Record<string, string>) {
     if (!activeTable || !activeFilename) return
+    const autoKey = getAutoKey(activeTable)
+    const finalRow = { ...row }
+    if (rowModal.editIndex === null && autoKey) {
+      finalRow[autoKey.name] = computeNextId(activeTable, autoKey.name)
+    }
     const rows = rowModal.editIndex !== null
-      ? activeTable.rows.map((r, i) => i === rowModal.editIndex ? row : r)
-      : [...activeTable.rows, row]
+      ? activeTable.rows.map((r, i) => i === rowModal.editIndex ? finalRow : r)
+      : [...activeTable.rows, finalRow]
     const next = { ...session, [activeFilename]: { ...activeTable, rows } }
     updateSession(next)
     toast.success(rowModal.editIndex !== null ? 'Row updated' : 'Row added')
@@ -270,6 +285,7 @@ export default function App() {
             open={rowModal.open}
             table={activeTable}
             session={session}
+            autoKeyName={getAutoKey(activeTable)?.name ?? null}
             onClose={() => setRowModal({ open: false, editIndex: null })}
             onSubmit={handleRowSubmit}
             mode={rowModal.editIndex !== null ? 'edit' : 'add'}
