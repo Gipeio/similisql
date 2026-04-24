@@ -64,6 +64,17 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault()
+        if (Object.keys(session).length > 0) setExportAllOpen(true)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [session])
+
+  useEffect(() => {
     if (highlight !== null) {
       const t = setTimeout(() => setHighlight(null), 2500)
       return () => clearTimeout(t)
