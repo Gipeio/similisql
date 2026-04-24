@@ -3,13 +3,15 @@ import { Upload } from 'lucide-react'
 
 interface Props {
   onFile: (content: string, filename: string) => void
+  onZip?: (file: File) => void
 }
 
-export function FileDropZone({ onFile }: Props) {
+export function FileDropZone({ onFile, onZip }: Props) {
   const [dragging, setDragging] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   function readFile(file: File) {
+    if (file.name.endsWith('.zip') && onZip) { onZip(file); return }
     const reader = new FileReader()
     reader.onload = e => onFile(e.target?.result as string, file.name)
     reader.readAsText(file)
@@ -40,17 +42,18 @@ export function FileDropZone({ onFile }: Props) {
         <Upload className={`w-8 h-8 transition-colors ${dragging ? 'text-primary' : 'text-muted-foreground group-hover:text-primary'}`} />
       </div>
       <div className="text-center space-y-1">
-        <p className="font-medium text-foreground">Drop a .ssql.txt file here</p>
+        <p className="font-medium text-foreground">Drop a <span className="font-mono">.ssql.txt</span> or <span className="font-mono">.zip</span> here</p>
         <p className="text-sm text-muted-foreground">or click to browse</p>
       </div>
       <input
         ref={inputRef}
         type="file"
-        accept=".txt"
+        accept=".txt,.zip"
         className="hidden"
         onChange={e => {
           const file = e.target.files?.[0]
           if (file) readFile(file)
+          e.target.value = ''
         }}
       />
     </div>

@@ -11,6 +11,7 @@ import { FileDropZone } from '@/components/FileDropZone'
 import { TableView } from '@/components/TableView'
 import { AddRowModal } from '@/components/AddRowModal'
 import { EditColumnsModal } from '@/components/EditColumnsModal'
+import JSZip from 'jszip'
 import { parseFile, serializeTable } from '@/lib/parser'
 import { saveSession, loadSession, exportTable, exportAllTables, generateZipBlob, type Session } from '@/lib/storage'
 import { FSA_SUPPORTED, pickAndWrite, writeToHandle } from '@/lib/fsa'
@@ -56,6 +57,8 @@ export default function App() {
   const zipHandleRef = useRef<FileSystemFileHandle | null>(null)
 
   const addTableRef = useRef<HTMLInputElement>(null)
+  const importZipRef = useRef<HTMLInputElement>(null)
+  const importFolderRef = useRef<HTMLInputElement>(null)
 
   const activeTable = activeFilename ? session[activeFilename] ?? null : null
 
@@ -155,6 +158,56 @@ export default function App() {
     setActiveFilename(filename)
     setNewTableOpen(false)
     setNewTableName('')
+  }
+
+  async function handleImportZip(file: File) {
+    try {
+      const zip = await JSZip.loadAsync(file)
+      const loaded: Session = {}
+      for (const [path, entry] of Object.entries(zip.files)) {
+        if (entry.dir) continue
+        const name = path.split('/').pop()!
+        if (!name.endsWith('.ssql.txt') && !name.endsWith('.txt')) continue
+        const content = await entry.async('text')
+        const result = parseFile(content)
+        if (result.status === 'valid') loaded[name] = result.table
+        else if (result.status === 'empty') loaded[name] = { columns: [], rows: [] }
+      }
+      const count = Object.keys(loaded).length
+      if (count === 0) { toast.error('No valid tables found in ZIP'); return }
+      const next = { ...session, ...loaded }
+      updateSession(next)
+      setActiveFilename(Object.keys(loaded)[0])
+      toast.success(`Loaded ${count} table${count !== 1 ? 's' : ''} from ZIP`)
+    } catch {
+      toast.error('Failed to read ZIP file')
+    }
+  }
+
+  function handleImportFolder(files: FileList) {
+    const txtFiles = Array.from(files).filter(f => f.name.endsWith('.ssql.txt') || f.name.endsWith('.txt'))
+    if (txtFiles.length === 0) { toast.error('No .ssql.txt files found in folder'); return }
+    const loaded: Session = {}
+    let pending = txtFiles.length
+    for (const file of txtFiles) {
+      const reader = new FileReader()
+      reader.onload = e => {
+        const content = e.target?.result as string
+        const result = parseFile(content)
+        if (result.status === 'valid') loaded[file.name] = result.table
+        else if (result.status === 'empty') loaded[file.name] = { columns: [], rows: [] }
+        pending--
+        if (pending === 0) {
+          const count = Object.keys(loaded).length
+          if (count === 0) { toast.error('No valid tables found in folder'); return }
+          const next = { ...session, ...loaded }
+          updateSession(next)
+          setActiveFilename(Object.keys(loaded)[0])
+          toast.success(`Loaded ${count} table${count !== 1 ? 's' : ''} from folder`)
+        }
+      }
+      reader.readAsText(file)
+    }
   }
 
   function handleFkClick(fkTable: string, fkColumn: string, value: string) {
@@ -376,10 +429,44 @@ export default function App() {
             <div className="text-center space-y-2">
               <h1 className="text-2xl font-semibold tracking-tight">Open a file</h1>
               <p className="text-muted-foreground text-sm">
-                Drop a <span className="font-mono">.ssql.txt</span> file or click the <span className="font-mono">+</span> tab to get started
+                Drop a file or archive, or click the <span className="font-mono">+</span> tab to create a new table
               </p>
             </div>
-            <FileDropZone onFile={(content, name) => loadIntoSession(content, name)} />
+            <FileDropZone
+              onFile={(content, name) => loadIntoSession(content, name)}
+              onZip={handleImportZip}
+            />
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="sm" onClick={() => importZipRef.current?.click()}>
+                Import ZIP
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => importFolderRef.current?.click()}>
+                Import folder
+              </Button>
+            </div>
+            <input
+              ref={importZipRef}
+              type="file"
+              accept=".zip"
+              className="hidden"
+              onChange={e => {
+                const file = e.target.files?.[0]
+                if (file) handleImportZip(file)
+                e.target.value = ''
+              }}
+            />
+            <input
+              ref={importFolderRef}
+              type="file"
+              className="hidden"
+              // @ts-expect-error webkitdirectory is non-standard but widely supported
+              webkitdirectory=""
+              multiple
+              onChange={e => {
+                if (e.target.files) handleImportFolder(e.target.files)
+                e.target.value = ''
+              }}
+            />
           </div>
         ) : activeTable?.columns.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4">
