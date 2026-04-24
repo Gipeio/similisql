@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { Plus, Download, Database, Columns3, X, ChevronDown } from 'lucide-react'
+import { Plus, Download, Database, Columns3, X, ChevronDown, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
@@ -45,6 +45,11 @@ export default function App() {
   const [closeWarning, setCloseWarning] = useState<string | null>(null)
   const [exportAllOpen, setExportAllOpen] = useState(false)
   const [exportFolderName, setExportFolderName] = useState('similisql-export')
+  const [exportWarning, setExportWarning] = useState<{ onConfirm: () => void } | null>(null)
+  const [exportWarningSuppressed, setExportWarningSuppressed] = useState(
+    () => localStorage.getItem('similisql:export-warning-dismissed') === 'true'
+  )
+  const [dontShowAgain, setDontShowAgain] = useState(false)
 
   const addTableRef = useRef<HTMLInputElement>(null)
 
@@ -170,16 +175,35 @@ export default function App() {
     toast.success('Columns updated')
   }
 
+  function withExportWarning(action: () => void) {
+    if (exportWarningSuppressed) { action(); return }
+    setDontShowAgain(false)
+    setExportWarning({ onConfirm: action })
+  }
+
+  function confirmExport() {
+    if (dontShowAgain) {
+      localStorage.setItem('similisql:export-warning-dismissed', 'true')
+      setExportWarningSuppressed(true)
+    }
+    exportWarning?.onConfirm()
+    setExportWarning(null)
+  }
+
   function handleExportCurrent() {
     if (!activeTable || !activeFilename) return
-    exportTable(activeTable, activeFilename)
-    toast.success('File downloaded')
+    withExportWarning(() => {
+      exportTable(activeTable!, activeFilename!)
+      toast.success('File downloaded')
+    })
   }
 
   async function handleExportAll() {
-    await exportAllTables(session, exportFolderName)
-    setExportAllOpen(false)
-    toast.success(`${exportFolderName}.zip downloaded`)
+    withExportWarning(async () => {
+      await exportAllTables(session, exportFolderName)
+      setExportAllOpen(false)
+      toast.success(`${exportFolderName}.zip downloaded`)
+    })
   }
 
   const filenames = Object.keys(session)
@@ -324,6 +348,35 @@ export default function App() {
           />
         </>
       )}
+
+      <Dialog open={!!exportWarning} onOpenChange={o => !o && setExportWarning(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full bg-amber-500/10 shrink-0">
+                <AlertTriangle className="w-5 h-5 text-amber-500" />
+              </div>
+              <DialogTitle>Overwrite warning</DialogTitle>
+            </div>
+            <DialogDescription className="pt-1">
+              If a file with this name already exists in your downloads folder, your browser may rename it automatically rather than overwrite it — this is a browser security restriction that can't be bypassed from a web app.
+            </DialogDescription>
+          </DialogHeader>
+          <label className="flex items-center gap-2.5 cursor-pointer select-none py-1">
+            <input
+              type="checkbox"
+              checked={dontShowAgain}
+              onChange={e => setDontShowAgain(e.target.checked)}
+              className="rounded border-input accent-primary w-4 h-4"
+            />
+            <span className="text-sm text-muted-foreground">Don't show this again</span>
+          </label>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setExportWarning(null)}>Cancel</Button>
+            <Button onClick={confirmExport}>Download anyway</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={exportAllOpen} onOpenChange={o => !o && setExportAllOpen(false)}>
         <DialogContent className="sm:max-w-sm">
