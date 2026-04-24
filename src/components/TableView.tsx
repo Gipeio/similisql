@@ -7,6 +7,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Pencil } from 'lucide-react'
 import type { Table as TableData } from '@/lib/types'
 
 const TYPE_COLORS: Record<string, string> = {
@@ -19,9 +21,10 @@ const TYPE_COLORS: Record<string, string> = {
 
 interface Props {
   table: TableData
+  onEditRow: (index: number) => void
 }
 
-export function TableView({ table }: Props) {
+export function TableView({ table, onEditRow }: Props) {
   return (
     <div className="rounded-xl border border-border overflow-hidden">
       <Table>
@@ -45,13 +48,14 @@ export function TableView({ table }: Props) {
                 </div>
               </TableHead>
             ))}
+            <TableHead className="w-10" />
           </TableRow>
         </TableHeader>
         <TableBody>
           {table.rows.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={table.columns.length}
+                colSpan={table.columns.length + 1}
                 className="text-center text-muted-foreground py-12 text-sm"
               >
                 No rows yet. Add one to get started.
@@ -59,12 +63,22 @@ export function TableView({ table }: Props) {
             </TableRow>
           ) : (
             table.rows.map((row, i) => (
-              <TableRow key={i} className="hover:bg-muted/20">
+              <TableRow key={i} className="group hover:bg-muted/20">
                 {table.columns.map(col => (
                   <TableCell key={col.name} className="font-mono text-sm py-2.5">
-                    {row[col.name] ?? <span className="text-muted-foreground italic">—</span>}
+                    {row[col.name] || <span className="text-muted-foreground italic">—</span>}
                   </TableCell>
                 ))}
+                <TableCell className="py-2.5 text-right pr-3">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => onEditRow(i)}
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </Button>
+                </TableCell>
               </TableRow>
             ))
           )}

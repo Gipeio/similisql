@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -34,14 +34,23 @@ interface Props {
   open: boolean
   table: Table
   onClose: () => void
-  onAdd: (row: Record<string, string>) => void
+  onSubmit: (row: Record<string, string>) => void
+  initialValues?: Record<string, string>
+  mode?: 'add' | 'edit'
 }
 
-export function AddRowModal({ open, table, onClose, onAdd }: Props) {
-  const [values, setValues] = useState<Record<string, string>>(() =>
-    Object.fromEntries(table.columns.map(c => [c.name, '']))
-  )
+export function AddRowModal({ open, table, onClose, onSubmit, initialValues, mode = 'add' }: Props) {
+  const empty = () => Object.fromEntries(table.columns.map(c => [c.name, '']))
+
+  const [values, setValues] = useState<Record<string, string>>(empty)
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    if (open) {
+      setValues(initialValues ?? empty())
+      setErrors({})
+    }
+  }, [open])
 
   function handleChange(name: string, type: Column['type'], value: string) {
     setValues(v => ({ ...v, [name]: value }))
@@ -57,19 +66,17 @@ export function AddRowModal({ open, table, onClose, onAdd }: Props) {
       if (err) { newErrors[col.name] = err; valid = false }
     }
     if (!valid) { setErrors(newErrors); return }
-    onAdd(values)
-    setValues(Object.fromEntries(table.columns.map(c => [c.name, ''])))
-    setErrors({})
+    onSubmit(values)
     onClose()
   }
 
   return (
-    <Dialog open={open} onOpenChange={open => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Add row</DialogTitle>
+    <Dialog open={open} onOpenChange={o => !o && onClose()}>
+      <DialogContent className="sm:max-w-md flex flex-col max-h-[90vh]">
+        <DialogHeader className="shrink-0">
+          <DialogTitle>{mode === 'edit' ? 'Edit row' : 'Add row'}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-2">
+        <div className="overflow-y-auto flex-1 space-y-4 py-2 pr-1">
           {table.columns.map(col => (
             <div key={col.name} className="space-y-1.5">
               <Label className="flex items-center gap-2 font-mono text-sm">
@@ -79,7 +86,7 @@ export function AddRowModal({ open, table, onClose, onAdd }: Props) {
                 </Badge>
               </Label>
               <Input
-                value={values[col.name]}
+                value={values[col.name] ?? ''}
                 onChange={e => handleChange(col.name, col.type, e.target.value)}
                 placeholder={col.type === 'bool' ? 'true / false' : col.type === 'date' ? 'YYYY-MM-DD' : col.name}
                 className={`font-mono text-sm ${errors[col.name] ? 'border-destructive focus-visible:ring-destructive' : ''}`}
@@ -91,9 +98,9 @@ export function AddRowModal({ open, table, onClose, onAdd }: Props) {
             </div>
           ))}
         </div>
-        <DialogFooter>
+        <DialogFooter className="shrink-0">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit}>Add row</Button>
+          <Button onClick={handleSubmit}>{mode === 'edit' ? 'Save' : 'Add row'}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -16,7 +16,8 @@ type PendingFile = { content: string; filename: string }
 export default function App() {
   const [table, setTable] = useState<Table | null>(null)
   const [filename, setFilename] = useState<string>('')
-  const [addRowOpen, setAddRowOpen] = useState(false)
+  const [rowModalOpen, setRowModalOpen] = useState(false)
+  const [editRowIndex, setEditRowIndex] = useState<number | null>(null)
   const [pendingFile, setPendingFile] = useState<PendingFile | null>(null)
 
   useEffect(() => {
@@ -55,12 +56,30 @@ export default function App() {
     toast.success(`Loaded ${result.table.rows.length} row(s)`)
   }
 
-  function handleAddRow(row: Record<string, string>) {
+  function handleRowSubmit(row: Record<string, string>) {
     if (!table) return
-    const updated = { ...table, rows: [...table.rows, row] }
+    const rows = editRowIndex !== null
+      ? table.rows.map((r, i) => i === editRowIndex ? row : r)
+      : [...table.rows, row]
+    const updated = { ...table, rows }
     setTable(updated)
     saveTable(updated, filename)
-    toast.success('Row added')
+    toast.success(editRowIndex !== null ? 'Row updated' : 'Row added')
+  }
+
+  function handleEditRow(index: number) {
+    setEditRowIndex(index)
+    setRowModalOpen(true)
+  }
+
+  function handleOpenAdd() {
+    setEditRowIndex(null)
+    setRowModalOpen(true)
+  }
+
+  function handleCloseModal() {
+    setRowModalOpen(false)
+    setEditRowIndex(null)
   }
 
   function handleExport() {
@@ -107,7 +126,7 @@ export default function App() {
               <Download className="w-4 h-4 mr-1.5" />
               Export
             </Button>
-            <Button size="sm" onClick={() => setAddRowOpen(true)}>
+            <Button size="sm" onClick={handleOpenAdd}>
               <Plus className="w-4 h-4 mr-1.5" />
               Add row
             </Button>
@@ -131,17 +150,19 @@ export default function App() {
             <p className="text-sm text-muted-foreground font-mono">
               {table.rows.length} row{table.rows.length !== 1 ? 's' : ''} · {table.columns.length} column{table.columns.length !== 1 ? 's' : ''}
             </p>
-            <TableView table={table} />
+            <TableView table={table} onEditRow={handleEditRow} />
           </div>
         )}
       </main>
 
       {table && (
         <AddRowModal
-          open={addRowOpen}
+          open={rowModalOpen}
           table={table}
-          onClose={() => setAddRowOpen(false)}
-          onAdd={handleAddRow}
+          onClose={handleCloseModal}
+          onSubmit={handleRowSubmit}
+          mode={editRowIndex !== null ? 'edit' : 'add'}
+          initialValues={editRowIndex !== null ? table.rows[editRowIndex] : undefined}
         />
       )}
 
