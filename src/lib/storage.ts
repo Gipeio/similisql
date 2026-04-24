@@ -1,24 +1,33 @@
-import { serializeTable } from './parser'
+import { parseFile, serializeTable } from './parser'
 import type { Table } from './types'
 
-const STORAGE_KEY = 'similisql:table'
-const FILENAME_KEY = 'similisql:filename'
+export type Session = Record<string, Table>
 
-export function saveTable(table: Table, filename: string): void {
-  localStorage.setItem(STORAGE_KEY, serializeTable(table))
-  localStorage.setItem(FILENAME_KEY, filename)
+const SESSION_KEY = 'similisql:session'
+
+export function saveSession(session: Session): void {
+  const data: Record<string, string> = {}
+  for (const [filename, table] of Object.entries(session)) {
+    data[filename] = table.columns.length === 0 ? '' : serializeTable(table)
+  }
+  localStorage.setItem(SESSION_KEY, JSON.stringify(data))
 }
 
-export function loadCachedTable(): { content: string; filename: string } | null {
-  const content = localStorage.getItem(STORAGE_KEY)
-  const filename = localStorage.getItem(FILENAME_KEY)
-  if (!content || !filename) return null
-  return { content, filename }
-}
-
-export function clearCachedTable(): void {
-  localStorage.removeItem(STORAGE_KEY)
-  localStorage.removeItem(FILENAME_KEY)
+export function loadSession(): Session {
+  const raw = localStorage.getItem(SESSION_KEY)
+  if (!raw) return {}
+  try {
+    const data = JSON.parse(raw) as Record<string, string>
+    const session: Session = {}
+    for (const [filename, content] of Object.entries(data)) {
+      if (!content) { session[filename] = { columns: [], rows: [] }; continue }
+      const result = parseFile(content)
+      if (result.status === 'valid') session[filename] = result.table
+    }
+    return session
+  } catch {
+    return {}
+  }
 }
 
 export function exportTable(table: Table, filename: string): void {

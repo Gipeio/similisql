@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import type { Column, Table } from '@/lib/types'
+import type { Session } from '@/lib/storage'
 
 const TYPE_COLORS: Record<string, string> = {
   string: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
@@ -17,31 +18,77 @@ const TYPE_COLORS: Record<string, string> = {
 function validateCell(value: string, type: Column['type']): string | null {
   if (value === '') return null
   switch (type) {
-    case 'int':
-      return /^-?\d+$/.test(value) ? null : 'Must be an integer'
-    case 'float':
-      return /^-?\d+(\.\d+)?$/.test(value) ? null : 'Must be a number'
-    case 'bool':
-      return ['true', 'false'].includes(value.toLowerCase()) ? null : 'Must be true or false'
-    case 'date':
-      return /^\d{4}-\d{2}-\d{2}$/.test(value) ? null : 'Must be YYYY-MM-DD'
-    default:
-      return null
+    case 'int':    return /^-?\d+$/.test(value) ? null : 'Must be an integer'
+    case 'float':  return /^-?\d+(\.\d+)?$/.test(value) ? null : 'Must be a number'
+    case 'bool':   return ['true', 'false'].includes(value.toLowerCase()) ? null : 'Must be true or false'
+    case 'date':   return /^\d{4}-\d{2}-\d{2}$/.test(value) ? null : 'Must be YYYY-MM-DD'
+    default:       return null
   }
+}
+
+function resolveRefTable(fkTable: string, session: Session): Table | null {
+  const entry = Object.entries(session).find(([fn]) =>
+    fn.replace(/\.ssql\.txt$/, '').replace(/\.txt$/, '') === fkTable
+  )
+  return entry ? entry[1] : null
+}
+
+function labelColumn(refTable: Table, fkColumn: string): string | null {
+  return refTable.columns.find(c => c.type === 'string' && !c.fk && c.name !== fkColumn)?.name ?? null
+}
+
+interface FkSelectProps {
+  col: Column & { fk: NonNullable<Column['fk']> }
+  session: Session
+  value: string
+  onChange: (v: string) => void
+}
+
+function FkSelect({ col, session, value, onChange }: FkSelectProps) {
+  const refTable = resolveRefTable(col.fk.table, session)
+  if (!refTable) {
+    return (
+      <Input
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={`${col.fk.table} not loaded`}
+        className="font-mono text-sm"
+      />
+    )
+  }
+  const labelCol = labelColumn(refTable, col.fk.column)
+  return (
+    <select
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-ring"
+    >
+      <option value="">—</option>
+      {refTable.rows.map((row, i) => {
+        const id = row[col.fk.column] ?? ''
+        const label = labelCol ? row[labelCol] : null
+        return (
+          <option key={i} value={id}>
+            {id}{label ? ` — ${label}` : ''}
+          </option>
+        )
+      })}
+    </select>
+  )
 }
 
 interface Props {
   open: boolean
   table: Table
+  session: Session
   onClose: () => void
   onSubmit: (row: Record<string, string>) => void
   initialValues?: Record<string, string>
   mode?: 'add' | 'edit'
 }
 
-export function AddRowModal({ open, table, onClose, onSubmit, initialValues, mode = 'add' }: Props) {
+export function AddRowModal({ open, table, session, onClose, onSubmit, initialValues, mode = 'add' }: Props) {
   const empty = () => Object.fromEntries(table.columns.map(c => [c.name, '']))
-
   const [values, setValues] = useState<Record<string, string>>(empty)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -84,17 +131,29 @@ export function AddRowModal({ open, table, onClose, onSubmit, initialValues, mod
                 <Badge variant="outline" className={`text-[10px] px-1.5 py-0 font-mono ${TYPE_COLORS[col.type]}`}>
                   {col.type}
                 </Badge>
+                {col.fk && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono bg-rose-500/10 text-rose-400 border-rose-500/20">
+                    → {col.fk.table}.{col.fk.column}
+                  </Badge>
+                )}
               </Label>
-              <Input
-                value={values[col.name] ?? ''}
-                onChange={e => handleChange(col.name, col.type, e.target.value)}
-                placeholder={col.type === 'bool' ? 'true / false' : col.type === 'date' ? 'YYYY-MM-DD' : col.name}
-                className={`font-mono text-sm ${errors[col.name] ? 'border-destructive focus-visible:ring-destructive' : ''}`}
-                onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-              />
-              {errors[col.name] && (
-                <p className="text-xs text-destructive">{errors[col.name]}</p>
+              {col.fk ? (
+                <FkSelect
+                  col={col as Column & { fk: NonNullable<Column['fk']> }}
+                  session={session}
+                  value={values[col.name] ?? ''}
+                  onChange={v => handleChange(col.name, col.type, v)}
+                />
+              ) : (
+                <Input
+                  value={values[col.name] ?? ''}
+                  onChange={e => handleChange(col.name, col.type, e.target.value)}
+                  placeholder={col.type === 'bool' ? 'true / false' : col.type === 'date' ? 'YYYY-MM-DD' : col.name}
+                  className={`font-mono text-sm ${errors[col.name] ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                  onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+                />
               )}
+              {errors[col.name] && <p className="text-xs text-destructive">{errors[col.name]}</p>}
             </div>
           ))}
         </div>

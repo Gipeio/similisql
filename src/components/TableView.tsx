@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Table,
   TableBody,
@@ -22,11 +22,20 @@ const TYPE_COLORS: Record<string, string> = {
 
 interface Props {
   table: TableData
+  highlightRowIndex?: number | null
   onEditRow: (index: number) => void
+  onFkClick: (fkTable: string, fkColumn: string, value: string) => void
 }
 
-export function TableView({ table, onEditRow }: Props) {
+export function TableView({ table, highlightRowIndex, onEditRow, onFkClick }: Props) {
   const [hoveredRow, setHoveredRow] = useState<number | null>(null)
+  const highlightRef = useRef<HTMLTableRowElement>(null)
+
+  useEffect(() => {
+    if (highlightRowIndex != null && highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [highlightRowIndex])
 
   return (
     <div className="rounded-xl border border-border overflow-hidden">
@@ -38,10 +47,7 @@ export function TableView({ table, onEditRow }: Props) {
               <TableHead key={col.name} className="font-mono text-xs py-3">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-foreground">{col.name}</span>
-                  <Badge
-                    variant="outline"
-                    className={`text-[10px] px-1.5 py-0 font-mono ${TYPE_COLORS[col.type]}`}
-                  >
+                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 font-mono ${TYPE_COLORS[col.type]}`}>
                     {col.type}
                   </Badge>
                   {col.fk && (
@@ -57,38 +63,51 @@ export function TableView({ table, onEditRow }: Props) {
         <TableBody>
           {table.rows.length === 0 ? (
             <TableRow>
-              <TableCell
-                colSpan={table.columns.length + 1}
-                className="text-center text-muted-foreground py-12 text-sm"
-              >
+              <TableCell colSpan={table.columns.length + 1} className="text-center text-muted-foreground py-12 text-sm">
                 No rows yet. Add one to get started.
               </TableCell>
             </TableRow>
           ) : (
-            table.rows.map((row, i) => (
-              <TableRow
-                key={i}
-                onMouseEnter={() => setHoveredRow(i)}
-                onMouseLeave={() => setHoveredRow(null)}
-              >
-                <TableCell className="py-2.5 pl-3 pr-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={`h-7 w-7 text-muted-foreground hover:text-foreground transition-opacity ${hoveredRow === i ? 'opacity-100' : 'opacity-0'}`}
-                    tabIndex={-1}
-                    onClick={() => onEditRow(i)}
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                  </Button>
-                </TableCell>
-                {table.columns.map(col => (
-                  <TableCell key={col.name} className="font-mono text-sm py-2.5">
-                    {row[col.name] || <span className="text-muted-foreground italic">—</span>}
+            table.rows.map((row, i) => {
+              const isHighlighted = i === highlightRowIndex
+              return (
+                <TableRow
+                  key={i}
+                  ref={isHighlighted ? highlightRef : undefined}
+                  onMouseEnter={() => setHoveredRow(i)}
+                  onMouseLeave={() => setHoveredRow(null)}
+                  className={isHighlighted ? 'bg-primary/10 ring-1 ring-inset ring-primary/30' : ''}
+                >
+                  <TableCell className="py-2.5 pl-3 pr-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      tabIndex={-1}
+                      className={`h-7 w-7 text-muted-foreground hover:text-foreground transition-opacity ${hoveredRow === i ? 'opacity-100' : 'opacity-0'}`}
+                      onClick={() => onEditRow(i)}
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
                   </TableCell>
-                ))}
-              </TableRow>
-            ))
+                  {table.columns.map(col => (
+                    <TableCell key={col.name} className="font-mono text-sm py-2.5">
+                      {col.fk && row[col.name] ? (
+                        <button
+                          onClick={() => onFkClick(col.fk!.table, col.fk!.column, row[col.name])}
+                          className="text-primary hover:underline underline-offset-2 font-mono text-sm"
+                        >
+                          {row[col.name]}
+                        </button>
+                      ) : row[col.name] ? (
+                        row[col.name]
+                      ) : (
+                        <span className="text-muted-foreground italic">—</span>
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              )
+            })
           )}
         </TableBody>
       </Table>
