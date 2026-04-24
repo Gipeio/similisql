@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { Plus, Download, FolderOpen, Database } from 'lucide-react'
+import { Plus, Download, FolderOpen, Database, Columns3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
 import { FileDropZone } from '@/components/FileDropZone'
 import { TableView } from '@/components/TableView'
 import { AddRowModal } from '@/components/AddRowModal'
 import { OverwriteWarningModal } from '@/components/OverwriteWarningModal'
+import { EditColumnsModal } from '@/components/EditColumnsModal'
 import { parseFile } from '@/lib/parser'
 import { saveTable, loadCachedTable, exportTable } from '@/lib/storage'
-import type { Table } from '@/lib/types'
+import type { Column, Table } from '@/lib/types'
 
 type PendingFile = { content: string; filename: string }
 
@@ -19,6 +20,7 @@ export default function App() {
   const [rowModalOpen, setRowModalOpen] = useState(false)
   const [editRowIndex, setEditRowIndex] = useState<number | null>(null)
   const [pendingFile, setPendingFile] = useState<PendingFile | null>(null)
+  const [editColumnsOpen, setEditColumnsOpen] = useState(false)
   const openInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -83,6 +85,14 @@ export default function App() {
     setEditRowIndex(null)
   }
 
+  function handleColumnsApply(columns: Column[], rows: Record<string, string>[]) {
+    if (!table) return
+    const updated = { columns, rows }
+    setTable(updated)
+    saveTable(updated, filename)
+    toast.success('Columns updated')
+  }
+
   function handleExport() {
     if (!table) return
     exportTable(table, filename)
@@ -119,6 +129,10 @@ export default function App() {
         </div>
         {table && (
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setEditColumnsOpen(true)}>
+              <Columns3 className="w-4 h-4 mr-1.5" />
+              Edit columns
+            </Button>
             <Button variant="outline" size="sm" onClick={() => openInputRef.current?.click()}>
               <FolderOpen className="w-4 h-4 mr-1.5" />
               Open
@@ -160,6 +174,14 @@ export default function App() {
             </div>
             <FileDropZone onFile={handleFile} />
           </div>
+        ) : table.columns.length === 0 ? (
+          <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4">
+            <p className="text-muted-foreground text-sm">Empty file — define columns to get started.</p>
+            <Button onClick={() => setEditColumnsOpen(true)}>
+              <Columns3 className="w-4 h-4 mr-1.5" />
+              Define columns
+            </Button>
+          </div>
         ) : (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground font-mono">
@@ -178,6 +200,15 @@ export default function App() {
           onSubmit={handleRowSubmit}
           mode={editRowIndex !== null ? 'edit' : 'add'}
           initialValues={editRowIndex !== null ? table.rows[editRowIndex] : undefined}
+        />
+      )}
+
+      {table && (
+        <EditColumnsModal
+          open={editColumnsOpen}
+          table={table}
+          onClose={() => setEditColumnsOpen(false)}
+          onApply={handleColumnsApply}
         />
       )}
 

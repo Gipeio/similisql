@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   Table,
   TableBody,
@@ -25,11 +26,14 @@ interface Props {
 }
 
 export function TableView({ table, onEditRow }: Props) {
+  const [hoveredRow, setHoveredRow] = useState<number | null>(null)
+
   return (
     <div className="rounded-xl border border-border overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/40 hover:bg-muted/40">
+            <TableHead className="w-10" />
             {table.columns.map(col => (
               <TableHead key={col.name} className="font-mono text-xs py-3">
                 <div className="flex items-center gap-2">
@@ -48,7 +52,6 @@ export function TableView({ table, onEditRow }: Props) {
                 </div>
               </TableHead>
             ))}
-            <TableHead className="w-10" />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -63,22 +66,27 @@ export function TableView({ table, onEditRow }: Props) {
             </TableRow>
           ) : (
             table.rows.map((row, i) => (
-              <TableRow key={i} className="hover:bg-muted/20">
-                {table.columns.map(col => (
-                  <TableCell key={col.name} className="font-mono text-sm py-2.5">
-                    {row[col.name] || <span className="text-muted-foreground italic">—</span>}
-                  </TableCell>
-                ))}
-                <TableCell className="py-2.5 text-right pr-3">
+              <TableRow
+                key={i}
+                onMouseEnter={() => setHoveredRow(i)}
+                onMouseLeave={() => setHoveredRow(null)}
+              >
+                <TableCell className="py-2.5 pl-3 pr-1">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                    className={`h-7 w-7 text-muted-foreground hover:text-foreground transition-opacity ${hoveredRow === i ? 'opacity-100' : 'opacity-0'}`}
+                    tabIndex={-1}
                     onClick={() => onEditRow(i)}
                   >
                     <Pencil className="w-3.5 h-3.5" />
                   </Button>
                 </TableCell>
+                {table.columns.map(col => (
+                  <TableCell key={col.name} className="font-mono text-sm py-2.5">
+                    {row[col.name] || <span className="text-muted-foreground italic">—</span>}
+                  </TableCell>
+                ))}
               </TableRow>
             ))
           )}
