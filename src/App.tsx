@@ -109,6 +109,14 @@ export default function App() {
     if (rowIndex < 0) toast.info(`No matching row found in ${tabLabel(targetFilename)}`)
   }
 
+  function handleDeleteRow(index: number) {
+    if (!activeTable || !activeFilename) return
+    const rows = activeTable.rows.filter((_, i) => i !== index)
+    const next = { ...session, [activeFilename]: { ...activeTable, rows } }
+    updateSession(next)
+    toast.success('Row deleted')
+  }
+
   function handleRowSubmit(row: Record<string, string>) {
     if (!activeTable || !activeFilename) return
     const rows = rowModal.editIndex !== null
@@ -233,6 +241,7 @@ export default function App() {
               table={activeTable}
               highlightRowIndex={highlight}
               onEditRow={i => setRowModal({ open: true, editIndex: i })}
+              onDeleteRow={handleDeleteRow}
               onFkClick={handleFkClick}
             />
           </div>

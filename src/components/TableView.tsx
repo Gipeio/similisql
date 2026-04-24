@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Pencil } from 'lucide-react'
+import { Pencil, Trash2 } from 'lucide-react'
 import type { Table as TableData } from '@/lib/types'
 
 const TYPE_COLORS: Record<string, string> = {
@@ -24,10 +24,11 @@ interface Props {
   table: TableData
   highlightRowIndex?: number | null
   onEditRow: (index: number) => void
+  onDeleteRow: (index: number) => void
   onFkClick: (fkTable: string, fkColumn: string, value: string) => void
 }
 
-export function TableView({ table, highlightRowIndex, onEditRow, onFkClick }: Props) {
+export function TableView({ table, highlightRowIndex, onEditRow, onDeleteRow, onFkClick }: Props) {
   const [hoveredRow, setHoveredRow] = useState<number | null>(null)
   const highlightRef = useRef<HTMLTableRowElement>(null)
 
@@ -79,15 +80,26 @@ export function TableView({ table, highlightRowIndex, onEditRow, onFkClick }: Pr
                   className={isHighlighted ? 'bg-primary/10 ring-1 ring-inset ring-primary/30' : ''}
                 >
                   <TableCell className="py-2.5 pl-3 pr-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      tabIndex={-1}
-                      className={`h-7 w-7 text-muted-foreground hover:text-foreground transition-opacity ${hoveredRow === i ? 'opacity-100' : 'opacity-0'}`}
-                      onClick={() => onEditRow(i)}
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </Button>
+                    <div className={`flex items-center gap-0.5 transition-opacity ${hoveredRow === i ? 'opacity-100' : 'opacity-0'}`}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        tabIndex={-1}
+                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                        onClick={() => onEditRow(i)}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        tabIndex={-1}
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        onClick={() => onDeleteRow(i)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   </TableCell>
                   {table.columns.map(col => (
                     <TableCell key={col.name} className="font-mono text-sm py-2.5">
