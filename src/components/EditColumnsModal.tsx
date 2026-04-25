@@ -1,3 +1,7 @@
+// Dialog for adding, renaming, retyping, and reordering columns.
+// Uses dnd-kit for drag-and-drop. Type changes are validated against existing rows to prevent corruption.
+// The first column + any immediately following FK columns are locked (→ computeLockedCount).
+
 import { useEffect, useMemo, useState } from 'react'
 import {
   DndContext,
@@ -57,7 +61,8 @@ function parseFk(raw: string): Column['fk'] | undefined {
   return undefined
 }
 
-// First column + consecutive FK columns following it are locked
+// Locks the primary key (first col) and any directly following FK columns —
+// reordering them would break the table's identity structure.
 function computeLockedCount(cols: EditCol[]): number {
   if (cols.length === 0) return 0
   let count = 1

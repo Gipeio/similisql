@@ -1,3 +1,7 @@
+// Shared data types — imported by parser, storage, and all components.
+// Column: one field definition. Table: in-memory representation of a .ssql.txt file.
+// ParseResult: discriminated union returned by parseFile() (→ parser.ts).
+
 export type ColumnType = 'string' | 'int' | 'float' | 'bool' | 'date'
 
 export interface Column {

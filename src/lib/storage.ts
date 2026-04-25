@@ -1,3 +1,7 @@
+// Persistence layer: localStorage for the live session, browser download for export.
+// Session is stored as { filename → raw text } so tables survive page reloads.
+// For native write-in-place saving (Chromium only), see fsa.ts.
+
 import JSZip from 'jszip'
 import { parseFile, serializeTable } from './parser'
 import type { Table } from './types'
@@ -49,6 +53,7 @@ export async function exportAllTables(session: Session, folderName: string): Pro
   triggerDownload(blob, `${folderName}.zip`)
 }
 
+// Creates a temporary object URL, simulates a link click, then releases the URL immediately.
 function triggerDownload(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')

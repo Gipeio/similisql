@@ -1,3 +1,7 @@
+// Drop zone accepting .ssql.txt and .zip files — drag-and-drop or click-to-browse.
+// Plain text files are read here and forwarded as strings via onFile.
+// ZIP files are forwarded as raw File objects via onZip; unpacking happens in App.tsx (handleImportZip).
+
 import { useRef, useState } from 'react'
 import { Upload } from 'lucide-react'
 

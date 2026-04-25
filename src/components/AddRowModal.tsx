@@ -1,3 +1,7 @@
+// Form dialog for adding or editing one row, with per-column type validation.
+// FK columns render as a <select> (FkSelect) populated from the referenced table in the session.
+// Auto-key columns (first int, no FK) are auto-filled on add and shown read-only on edit.
+
 import { useEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'

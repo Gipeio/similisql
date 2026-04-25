@@ -1,3 +1,12 @@
+// Root component — owns all app state. No backend; everything lives in localStorage (→ storage.ts).
+//
+// session: all open tables keyed by filename. Persisted on every mutation via updateSession().
+// activeFilename: which tab is visible. highlight: row index to flash after FK navigation.
+//
+// Files enter: FileDropZone / file pickers → readFile → loadIntoSession → parseFile (parser.ts)
+// Files exit:  Export buttons → serializeTable → exportTable / generateZipBlob (storage.ts)
+// FK navigation: handleFkClick switches the active tab and sets highlight → TableView scrolls there.
+
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Plus, Download, Database, Columns3, X, ChevronDown, AlertTriangle } from 'lucide-react'
@@ -71,6 +80,7 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    // Ctrl+S: re-save to the existing ZIP handle if one is stored, otherwise open the export dialog.
     function onKeyDown(e: KeyboardEvent) {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault()
@@ -99,6 +109,7 @@ export default function App() {
     }
   }, [highlight])
 
+  // Single mutation point — always use this instead of setSession directly so localStorage stays in sync.
   function updateSession(next: Session) {
     setSession(next)
     saveSession(next)
@@ -210,6 +221,8 @@ export default function App() {
     }
   }
 
+  // Switches to the target table tab and highlights the row that matches the FK value.
+  // TableView.tsx picks up `highlight` and scrolls to that row automatically.
   function handleFkClick(fkTable: string, fkColumn: string, value: string) {
     const targetFilename = resolveFilenameByTableName(fkTable, session)
     if (!targetFilename) {

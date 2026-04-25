@@ -1,3 +1,7 @@
+// File System Access API — Chromium-only feature that lets the app write directly to disk.
+// pickAndWrite: opens "Save As", writes the blob, returns a handle for future re-saves without a dialog.
+// writeToHandle: re-saves to the same file using a handle stored in App.tsx (fileHandlesRef / zipHandleRef).
+
 export const FSA_SUPPORTED = typeof window !== 'undefined' && 'showSaveFilePicker' in window
 
 type MimeType = `${string}/${string}`

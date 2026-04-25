@@ -1,8 +1,13 @@
+// Converts between the .ssql.txt plain-text format and in-memory Table objects (→ types.ts).
+// parseFile()      — text → ParseResult; called by loadIntoSession (App.tsx) and loadSession (storage.ts).
+// serializeTable() — Table → text; called before every save or export.
+
 import type { Column, ColumnType, ParseResult, Table } from './types'
 
 const SEPARATOR = '|'
 const VALID_TYPES: ColumnType[] = ['string', 'int', 'float', 'bool', 'date']
 
+// Column def format: "name:type" or "name:type:fk:othertable.column"
 function parseColumnDef(raw: string): Column | null {
   const parts = raw.trim().split(':')
   if (parts.length < 2) return null
@@ -61,7 +66,8 @@ export function parseFile(content: string): ParseResult {
     rows.push(row)
   }
 
-  // Validate auto-key: first column must be int with no FK, unique non-empty values
+  // Auto-key rule: first int column with no FK must have unique, valid integer values.
+  // App.tsx uses this column to auto-increment IDs when adding rows.
   const keyCol = columns[0]
   if (keyCol && keyCol.type === 'int' && !keyCol.fk) {
     const seen = new Set<string>()

@@ -1,3 +1,7 @@
+// Renders the active table. FK cell values are clickable links — clicking calls onFkClick,
+// which App.tsx resolves by switching tabs and setting highlight → this component scrolls there.
+// Row edit/delete actions appear on hover only to keep the view uncluttered.
+
 import { useEffect, useRef, useState } from 'react'
 import {
   Table,
