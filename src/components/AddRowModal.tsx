@@ -12,11 +12,11 @@ import type { Column, Table } from '@/lib/types'
 import type { Session } from '@/lib/storage'
 
 const TYPE_COLORS: Record<string, string> = {
-  string: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-  int: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  float: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
-  bool: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  date: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+  string: 'bg-[rgba(74,88,48,0.12)] text-[#4A5830] border-[rgba(74,88,48,0.25)]',
+  int:    'bg-[rgba(212,105,42,0.12)] text-[#D4692A] border-[rgba(212,105,42,0.25)]',
+  float:  'bg-[rgba(212,105,42,0.08)] text-[#D4692A] border-[rgba(212,105,42,0.20)]',
+  bool:   'bg-[rgba(200,64,32,0.12)] text-[#C84020] border-[rgba(200,64,32,0.25)]',
+  date:   'bg-[rgba(154,120,72,0.12)] text-[#9A7848] border-[rgba(154,120,72,0.25)]',
 }
 
 function validateCell(value: string, type: Column['type']): string | null {
