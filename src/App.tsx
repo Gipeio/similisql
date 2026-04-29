@@ -612,13 +612,16 @@ export default function App() {
             <div className="space-y-1.5">
               <Label className="text-sm">Archive name</Label>
               <div className="flex items-center gap-2">
-                <Input
-                  value={exportFolderName}
-                  onChange={e => setExportFolderName(e.target.value)}
-                  className="font-mono text-sm"
-                  onKeyDown={e => e.key === 'Enter' && exportFolderName.trim() && handleExportAll()}
-                  autoFocus
-                />
+                <div className="group flex items-center h-8 border border-border focus-within:border-foreground/40 rounded-[var(--radius)] bg-background overflow-hidden transition-colors flex-1">
+                  <span className="px-2.5 text-[7px] text-muted-foreground group-focus-within:text-foreground/60 select-none flex-shrink-0 transition-colors" style={{ fontFamily: 'var(--font-pixel)' }}>{'>'}</span>
+                  <Input
+                    value={exportFolderName}
+                    onChange={e => setExportFolderName(e.target.value)}
+                    className="border-0 focus-visible:border-0 focus-visible:ring-0 rounded-none h-full bg-transparent px-0 pr-2.5 flex-1 min-w-0 font-mono text-sm"
+                    onKeyDown={e => e.key === 'Enter' && exportFolderName.trim() && handleExportAll()}
+                    autoFocus
+                  />
+                </div>
                 <span className="text-sm text-muted-foreground shrink-0">.zip</span>
               </div>
             </div>
@@ -691,14 +694,17 @@ export default function App() {
             <div className="space-y-1.5">
               <Label className="text-sm">Table name</Label>
               <div className="flex items-center gap-2">
-                <Input
-                  value={newTableName}
-                  onChange={e => setNewTableName(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleCreateTable()}
-                  placeholder="my_table"
-                  className="font-mono text-sm"
-                  autoFocus
-                />
+                <div className="group flex items-center h-8 border border-border focus-within:border-foreground/40 rounded-[var(--radius)] bg-background overflow-hidden transition-colors flex-1">
+                  <span className="px-2.5 text-[7px] text-muted-foreground group-focus-within:text-foreground/60 select-none flex-shrink-0 transition-colors" style={{ fontFamily: 'var(--font-pixel)' }}>{'>'}</span>
+                  <Input
+                    value={newTableName}
+                    onChange={e => setNewTableName(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleCreateTable()}
+                    placeholder="my_table"
+                    className="border-0 focus-visible:border-0 focus-visible:ring-0 rounded-none h-full bg-transparent px-0 pr-2.5 flex-1 min-w-0 font-mono text-sm"
+                    autoFocus
+                  />
+                </div>
                 <span className="text-xs text-muted-foreground shrink-0">.ssql.txt</span>
               </div>
             </div>

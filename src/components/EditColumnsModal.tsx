@@ -103,22 +103,28 @@ function ColumnCard({ col, locked, error, onChange, onRemove, dragHandleProps, d
         </div>
         <div className="flex-1 space-y-1">
           <Label className="text-xs text-muted-foreground">Name</Label>
-          <Input
-            value={col.name}
-            onChange={e => onChange({ name: e.target.value })}
-            placeholder="column_name"
-            className="font-mono text-sm h-8"
-          />
+          <div className="group flex items-center h-8 border border-border focus-within:border-foreground/40 rounded-[var(--radius)] bg-background overflow-hidden transition-colors">
+            <span className="px-2.5 text-[7px] text-muted-foreground group-focus-within:text-foreground/60 select-none flex-shrink-0 transition-colors" style={{ fontFamily: 'var(--font-pixel)' }}>{'>'}</span>
+            <Input
+              value={col.name}
+              onChange={e => onChange({ name: e.target.value })}
+              placeholder="column_name"
+              className="border-0 focus-visible:border-0 focus-visible:ring-0 rounded-none h-full bg-transparent px-0 pr-2.5 flex-1 min-w-0 font-mono text-sm"
+            />
+          </div>
         </div>
         <div className="w-28 space-y-1">
           <Label className="text-xs text-muted-foreground">Type</Label>
-          <select
-            value={col.type}
-            onChange={e => onChange({ type: e.target.value as ColumnType })}
-            className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-ring"
-          >
-            {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
+          <div className="group flex items-center h-8 border border-border focus-within:border-foreground/40 rounded-[var(--radius)] bg-background overflow-hidden transition-colors">
+            <span className="px-2 text-[7px] text-muted-foreground group-focus-within:text-foreground/60 select-none flex-shrink-0 transition-colors" style={{ fontFamily: 'var(--font-pixel)' }}>{'>'}</span>
+            <select
+              value={col.type}
+              onChange={e => onChange({ type: e.target.value as ColumnType })}
+              className="h-full flex-1 bg-transparent text-sm font-mono px-1 pr-2 border-0 outline-none"
+            >
+              {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
         </div>
         {!locked && (
           <div className="mt-7 shrink-0">
@@ -138,13 +144,16 @@ function ColumnCard({ col, locked, error, onChange, onRemove, dragHandleProps, d
         <Label className="text-xs text-muted-foreground">
           Foreign key <span className="opacity-50">(optional — table.column)</span>
         </Label>
-        <Input
-          value={col.fkRaw}
-          onChange={e => onChange({ fkRaw: e.target.value })}
-          placeholder="other_table.id"
-          className="font-mono text-sm h-8"
-          disabled={locked}
-        />
+        <div className={`group flex items-center h-8 border rounded-[var(--radius)] bg-background overflow-hidden transition-colors ${locked ? 'border-border/30 opacity-50' : 'border-border focus-within:border-foreground/40'}`}>
+          <span className="px-2.5 text-[7px] text-muted-foreground group-focus-within:text-foreground/60 select-none flex-shrink-0 transition-colors" style={{ fontFamily: 'var(--font-pixel)' }}>{'>'}</span>
+          <Input
+            value={col.fkRaw}
+            onChange={e => onChange({ fkRaw: e.target.value })}
+            placeholder="other_table.id"
+            className="border-0 focus-visible:border-0 focus-visible:ring-0 rounded-none h-full bg-transparent px-0 pr-2.5 flex-1 min-w-0 font-mono text-sm"
+            disabled={locked}
+          />
+        </div>
       </div>
 
       {error && <p className="text-xs text-destructive pl-6">{error}</p>}
@@ -188,7 +197,14 @@ export function EditColumnsModal({ open, table, onClose, onApply }: Props) {
     }
   }, [open])
 
-  const lockedCount = useMemo(() => computeLockedCount(cols), [cols.slice(0, cols.length).map(c => c.fkRaw).join('|')])
+  // Lock count is derived from the original table structure only — not from current editing state,
+  // to prevent a new column's FK field from locking itself as the user types.
+  const lockedCount = useMemo(() => {
+    if (table.columns.length === 0) return 0
+    let count = 1
+    while (count < table.columns.length && table.columns[count].fk) count++
+    return Math.min(count, cols.length)
+  }, [table.columns, cols.length])
   const lockedCols = cols.slice(0, lockedCount)
   const freeCols = cols.slice(lockedCount)
 

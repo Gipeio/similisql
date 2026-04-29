@@ -48,36 +48,47 @@ interface FkSelectProps {
   onChange: (v: string) => void
 }
 
+const LCD_PROMPT_STYLE = { fontFamily: 'var(--font-pixel)' } as const
+const LCD_PROMPT_CLS = 'px-2.5 text-[7px] text-muted-foreground group-focus-within:text-foreground/60 select-none flex-shrink-0 transition-colors'
+const LCD_WRAPPER_CLS = 'group flex items-center h-9 border border-border focus-within:border-foreground/40 rounded-[var(--radius)] bg-background overflow-hidden transition-colors'
+const LCD_INPUT_CLS = 'border-0 focus-visible:border-0 focus-visible:ring-0 rounded-none h-full bg-transparent px-0 pr-2.5 flex-1 min-w-0 font-mono text-sm'
+
 function FkSelect({ col, session, value, onChange }: FkSelectProps) {
   const refTable = resolveRefTable(col.fk.table, session)
   if (!refTable) {
     return (
-      <Input
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={`${col.fk.table} not loaded`}
-        className="font-mono text-sm"
-      />
+      <div className={LCD_WRAPPER_CLS}>
+        <span className={LCD_PROMPT_CLS} style={LCD_PROMPT_STYLE}>{'>'}</span>
+        <Input
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder={`${col.fk.table} not loaded`}
+          className={LCD_INPUT_CLS}
+        />
+      </div>
     )
   }
   const labelCol = labelColumn(refTable, col.fk.column)
   return (
-    <select
-      value={value}
-      onChange={e => onChange(e.target.value)}
-      className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-ring"
-    >
-      <option value="">—</option>
-      {refTable.rows.map((row, i) => {
-        const id = row[col.fk.column] ?? ''
-        const label = labelCol ? row[labelCol] : null
-        return (
-          <option key={i} value={id}>
-            {id}{label ? ` — ${label}` : ''}
-          </option>
-        )
-      })}
-    </select>
+    <div className={LCD_WRAPPER_CLS}>
+      <span className={LCD_PROMPT_CLS} style={LCD_PROMPT_STYLE}>{'>'}</span>
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="h-full flex-1 bg-transparent text-sm font-mono px-0 pr-3 border-0 outline-none"
+      >
+        <option value="">—</option>
+        {refTable.rows.map((row, i) => {
+          const id = row[col.fk.column] ?? ''
+          const label = labelCol ? row[labelCol] : null
+          return (
+            <option key={i} value={id}>
+              {id}{label ? ` — ${label}` : ''}
+            </option>
+          )
+        })}
+      </select>
+    </div>
   )
 }
 
@@ -143,11 +154,10 @@ export function AddRowModal({ open, table, session, autoKeyName, onClose, onSubm
                 )}
               </Label>
               {col.name === autoKeyName ? (
-                <Input
-                  value={initialValues?.[col.name] ?? ''}
-                  disabled
-                  className="font-mono text-sm opacity-50"
-                />
+                <div className={`${LCD_WRAPPER_CLS} opacity-50`}>
+                  <span className={LCD_PROMPT_CLS} style={LCD_PROMPT_STYLE}>{'>'}</span>
+                  <Input value={initialValues?.[col.name] ?? ''} disabled className={LCD_INPUT_CLS} />
+                </div>
               ) : col.fk ? (
                 <FkSelect
                   col={col as Column & { fk: NonNullable<Column['fk']> }}
@@ -156,13 +166,16 @@ export function AddRowModal({ open, table, session, autoKeyName, onClose, onSubm
                   onChange={v => handleChange(col.name, col.type, v)}
                 />
               ) : (
-                <Input
-                  value={values[col.name] ?? ''}
-                  onChange={e => handleChange(col.name, col.type, e.target.value)}
-                  placeholder={col.type === 'bool' ? 'true / false' : col.type === 'date' ? 'YYYY-MM-DD' : col.name}
-                  className={`font-mono text-sm ${errors[col.name] ? 'border-destructive focus-visible:ring-destructive' : ''}`}
-                  onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                />
+                <div className={`group flex items-center h-9 border rounded-[var(--radius)] bg-background overflow-hidden transition-colors ${errors[col.name] ? 'border-destructive' : 'border-border focus-within:border-foreground/40'}`}>
+                  <span className={LCD_PROMPT_CLS} style={LCD_PROMPT_STYLE}>{'>'}</span>
+                  <Input
+                    value={values[col.name] ?? ''}
+                    onChange={e => handleChange(col.name, col.type, e.target.value)}
+                    placeholder={col.type === 'bool' ? 'true / false' : col.type === 'date' ? 'YYYY-MM-DD' : col.name}
+                    className={`${LCD_INPUT_CLS} ${errors[col.name] ? 'focus-visible:ring-0' : ''}`}
+                    onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+                  />
+                </div>
               )}
               {errors[col.name] && <p className="text-xs text-destructive">{errors[col.name]}</p>}
             </div>

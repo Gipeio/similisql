@@ -217,3 +217,14 @@ body::before {
 body {
   animation: lcd-flicker 12s ease-in-out infinite;
 }
+
+/* Blinking placeholder on focused inputs — retro cursor while field is empty */
+input:focus::placeholder,
+textarea:focus::placeholder {
+  animation: lcd-blink 1s step-end infinite;
+}
+
+/* Underscore-style caret */
+input, textarea {
+  caret-color: var(--foreground);
+}
