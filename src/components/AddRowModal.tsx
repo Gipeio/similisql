@@ -12,11 +12,11 @@ import type { Column, Table } from '@/lib/types'
 import type { Session } from '@/lib/storage'
 
 const TYPE_COLORS: Record<string, string> = {
-  string: 'bg-[rgba(74,88,48,0.12)] text-[#4A5830] border-[rgba(74,88,48,0.25)]',
-  int:    'bg-[rgba(212,105,42,0.12)] text-[#D4692A] border-[rgba(212,105,42,0.25)]',
-  float:  'bg-[rgba(212,105,42,0.08)] text-[#D4692A] border-[rgba(212,105,42,0.20)]',
-  bool:   'bg-[rgba(200,64,32,0.12)] text-[#C84020] border-[rgba(200,64,32,0.25)]',
-  date:   'bg-[rgba(154,120,72,0.12)] text-[#9A7848] border-[rgba(154,120,72,0.25)]',
+  string: 'bg-[rgba(58,80,32,0.15)] text-[#3A5020] border-[rgba(58,80,32,0.40)] dark:bg-[rgba(74,88,48,0.22)] dark:text-[#8AA870] dark:border-[rgba(74,88,48,0.40)]',
+  int:    'bg-[rgba(139,26,16,0.12)] text-[#8B1A10] border-[rgba(139,26,16,0.35)] dark:bg-[rgba(139,26,16,0.22)] dark:text-[#D46050] dark:border-[rgba(139,26,16,0.40)]',
+  float:  'bg-[rgba(139,26,16,0.07)] text-[#7A2018] border-[rgba(139,26,16,0.22)] dark:bg-[rgba(139,26,16,0.14)] dark:text-[#B85040] dark:border-[rgba(139,26,16,0.30)]',
+  bool:   'bg-[rgba(139,26,16,0.12)] text-[#8B1A10] border-[rgba(139,26,16,0.35)] dark:bg-[rgba(139,26,16,0.22)] dark:text-[#D46050] dark:border-[rgba(139,26,16,0.40)]',
+  date:   'bg-[rgba(26,18,8,0.10)] text-[#5A5038] border-[rgba(26,18,8,0.25)] dark:bg-[rgba(212,216,176,0.08)] dark:text-[#8AA870] dark:border-[rgba(212,216,176,0.18)]',
 }
 
 function validateCell(value: string, type: Column['type']): string | null {

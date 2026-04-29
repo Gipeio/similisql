@@ -17,11 +17,11 @@ import { Pencil, Trash2 } from 'lucide-react'
 import type { Table as TableData } from '@/lib/types'
 
 const TYPE_COLORS: Record<string, string> = {
-  string: 'bg-[rgba(74,88,48,0.12)] text-[#4A5830] border-[rgba(74,88,48,0.25)]',
-  int:    'bg-[rgba(212,105,42,0.12)] text-[#D4692A] border-[rgba(212,105,42,0.25)]',
-  float:  'bg-[rgba(212,105,42,0.08)] text-[#D4692A] border-[rgba(212,105,42,0.20)]',
-  bool:   'bg-[rgba(200,64,32,0.12)] text-[#C84020] border-[rgba(200,64,32,0.25)]',
-  date:   'bg-[rgba(154,120,72,0.12)] text-[#9A7848] border-[rgba(154,120,72,0.25)]',
+  string: 'bg-[rgba(58,80,32,0.15)] text-[#3A5020] border-[rgba(58,80,32,0.40)] dark:bg-[rgba(74,88,48,0.22)] dark:text-[#8AA870] dark:border-[rgba(74,88,48,0.40)]',
+  int:    'bg-[rgba(139,26,16,0.12)] text-[#8B1A10] border-[rgba(139,26,16,0.35)] dark:bg-[rgba(139,26,16,0.22)] dark:text-[#D46050] dark:border-[rgba(139,26,16,0.40)]',
+  float:  'bg-[rgba(139,26,16,0.07)] text-[#7A2018] border-[rgba(139,26,16,0.22)] dark:bg-[rgba(139,26,16,0.14)] dark:text-[#B85040] dark:border-[rgba(139,26,16,0.30)]',
+  bool:   'bg-[rgba(139,26,16,0.12)] text-[#8B1A10] border-[rgba(139,26,16,0.35)] dark:bg-[rgba(139,26,16,0.22)] dark:text-[#D46050] dark:border-[rgba(139,26,16,0.40)]',
+  date:   'bg-[rgba(26,18,8,0.10)] text-[#5A5038] border-[rgba(26,18,8,0.25)] dark:bg-[rgba(212,216,176,0.08)] dark:text-[#8AA870] dark:border-[rgba(212,216,176,0.18)]',
 }
 
 interface Props {
@@ -43,10 +43,10 @@ export function TableView({ table, highlightRowIndex, onEditRow, onDeleteRow, on
   }, [highlightRowIndex])
 
   return (
-    <div className="rounded-xl border border-border overflow-hidden">
+    <div className="border-2 border-foreground/30 overflow-hidden" style={{ borderRadius: 'var(--radius)' }}>
       <Table>
         <TableHeader>
-          <TableRow className="bg-muted/40 hover:bg-muted/40">
+          <TableRow className="bg-muted/40 hover:bg-muted/40 dark:bg-[rgba(74,88,48,0.14)] dark:hover:bg-[rgba(74,88,48,0.14)]">
             <TableHead className="w-10" />
             {table.columns.map(col => (
               <TableHead key={col.name} className="font-mono text-xs py-3">
@@ -81,7 +81,7 @@ export function TableView({ table, highlightRowIndex, onEditRow, onDeleteRow, on
                   ref={isHighlighted ? highlightRef : undefined}
                   onMouseEnter={() => setHoveredRow(i)}
                   onMouseLeave={() => setHoveredRow(null)}
-                  className={isHighlighted ? 'bg-primary/10 ring-1 ring-inset ring-primary/30' : ''}
+                  className={isHighlighted ? 'bg-[var(--selection-bg)] ring-1 ring-inset ring-[var(--selection-ring)]' : ''}
                 >
                   <TableCell className="py-2.5 pl-3 pr-1">
                     <div className={`flex items-center gap-0.5 transition-opacity ${hoveredRow === i ? 'opacity-100' : 'opacity-0'}`}>

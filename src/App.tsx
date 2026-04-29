@@ -9,7 +9,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { Plus, Download, Columns3, X, ChevronDown, AlertTriangle } from 'lucide-react'
+import { Plus, Download, Columns3, X, ChevronDown, AlertTriangle, Sun, Moon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
@@ -59,6 +59,9 @@ export default function App() {
   const [exportWarningSuppressed, setExportWarningSuppressed] = useState(
     () => localStorage.getItem('similisql:export-warning-dismissed') === 'true'
   )
+  const [theme, setTheme] = useState<'light' | 'dark'>(
+    () => (localStorage.getItem('similisql:theme') as 'light' | 'dark') ?? 'light'
+  )
   const [dontShowAgain, setDontShowAgain] = useState(false)
   const [newTableOpen, setNewTableOpen] = useState(false)
   const [newTableName, setNewTableName] = useState('')
@@ -101,6 +104,11 @@ export default function App() {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [session, exportFolderName])
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark')
+    localStorage.setItem('similisql:theme', theme)
+  }, [theme])
 
   useEffect(() => {
     if (highlight !== null) {
@@ -355,9 +363,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <header className="sticky top-0 z-10 bg-card border-b border-border px-6 py-3 flex items-center justify-between gap-4">
-        <div className="flex items-center shrink-0">
-          <img src="/favicon.svg" className="h-8 w-auto" alt="similisql" />
+      <header className="sticky top-0 z-10 bg-[var(--header-bg)] border-b-2 border-[var(--header-border)] px-4 py-2.5 flex items-center justify-between gap-4">
+        {/* Logo — blob + titre pixel */}
+        <div className="flex items-center gap-2 shrink-0">
+          <img src="/favicon.svg" className="h-5 w-auto" alt="similisql" style={{ imageRendering: 'pixelated' }} />
+          <span className="text-[var(--header-fg)] text-[8px] tracking-widest leading-none" style={{ fontFamily: 'var(--font-pixel)' }}>
+            SIMILISQL
+          </span>
         </div>
 
         {/* Tabs */}
@@ -365,17 +377,17 @@ export default function App() {
           {filenames.map(fn => (
             <div
               key={fn}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[5px] text-sm font-mono shrink-0 cursor-pointer transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono shrink-0 cursor-pointer transition-colors border ${
                 fn === activeFilename
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-[rgba(74,88,48,0.08)] hover:text-foreground'
+                  ? 'bg-[var(--tab-active-bg)] text-[var(--tab-active-text)] border-[var(--tab-active-bg)]'
+                  : 'text-[var(--header-muted)] border-transparent hover:border-[var(--header-border)] hover:text-[var(--header-fg)]'
               }`}
               onClick={() => handleTabClick(fn)}
             >
               <span>{tabLabel(fn)}</span>
               <button
                 onClick={e => { e.stopPropagation(); confirmRemoveTable(fn) }}
-                className="opacity-50 hover:opacity-100 transition-opacity rounded"
+                className="opacity-50 hover:opacity-100 transition-opacity"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -383,7 +395,7 @@ export default function App() {
           ))}
           <button
             onClick={() => { setNewTableName(''); setNewTableOpen(true) }}
-            className="flex items-center gap-1 px-2 py-1.5 rounded-[5px] text-sm text-muted-foreground hover:text-foreground hover:bg-[rgba(74,88,48,0.08)] transition-colors shrink-0"
+            className="flex items-center gap-1 px-2 py-1.5 text-xs text-[var(--header-muted)] hover:text-[var(--header-fg)] transition-colors shrink-0"
           >
             <Plus className="w-4 h-4" />
           </button>
@@ -403,34 +415,56 @@ export default function App() {
         </div>
 
         {/* Actions */}
-        {activeTable && (
-          <div className="flex items-center gap-2 shrink-0">
-            <Button variant="outline" size="sm" onClick={() => setEditColumnsOpen(true)}>
-              <Columns3 className="w-4 h-4 mr-1.5" />
-              Edit columns
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-                <Download className="w-4 h-4 mr-1.5" />
-                Export
-                <ChevronDown className="w-3.5 h-3.5 ml-1.5 opacity-60" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleExportCurrent}>
-                  Current table
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setExportAllOpen(true)}>
-                  All tables…
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button size="sm" onClick={() => setRowModal({ open: true, editIndex: null })}>
-              <Plus className="w-4 h-4 mr-1.5" />
-              Add row
-            </Button>
-          </div>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {activeTable && (
+            <>
+              <Button
+                variant="ghost" size="sm"
+                className="text-[var(--header-fg)] border border-[var(--header-border)] hover:bg-[rgba(212,216,176,0.10)] hover:text-[var(--header-fg)] text-xs"
+                onClick={() => setEditColumnsOpen(true)}
+              >
+                <Columns3 className="w-4 h-4 mr-1.5" />
+                Edit columns
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger render={
+                  <Button
+                    variant="ghost" size="sm"
+                    className="text-[var(--header-fg)] border border-[var(--header-border)] hover:bg-[rgba(212,216,176,0.10)] hover:text-[var(--header-fg)] text-xs"
+                  />
+                }>
+                  <Download className="w-4 h-4 mr-1.5" />
+                  Export
+                  <ChevronDown className="w-3.5 h-3.5 ml-1.5 opacity-60" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleExportCurrent}>
+                    Current table
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setExportAllOpen(true)}>
+                    All tables…
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button
+                size="sm"
+                className="bg-[var(--tab-active-bg)] text-[var(--tab-active-text)] hover:opacity-80 text-xs"
+                onClick={() => setRowModal({ open: true, editIndex: null })}
+              >
+                <Plus className="w-4 h-4 mr-1.5" />
+                Add row
+              </Button>
+            </>
+          )}
+          <button
+            onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
+            className="p-2 text-[var(--header-muted)] hover:text-[var(--header-fg)] transition-colors"
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 p-6">
