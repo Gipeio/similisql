@@ -160,4 +160,60 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
   }
+  /* Pixel-press tactile feedback */
+  button:active {
+    transform: translateY(1px);
+  }
+}
+
+/* ─── T05 LCD FX ─────────────────────────────────────── */
+
+/* Subtle scanlines — atmospheric, barely perceptible */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(26, 18, 8, 0.03) 3px,
+    rgba(26, 18, 8, 0.03) 4px
+  );
+}
+
+.dark body::before {
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(212, 216, 176, 0.018) 3px,
+    rgba(212, 216, 176, 0.018) 4px
+  );
+}
+
+/* Blinking underscore cursor */
+@keyframes lcd-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.lcd-cursor::after {
+  content: '_';
+  animation: lcd-blink 1s step-end infinite;
+}
+
+/* Subtle ambient LCD flicker — triggers rarely so it stays atmospheric */
+@keyframes lcd-flicker {
+  0%, 94%, 100% { opacity: 1; }
+  95%           { opacity: 0.96; }
+  96.5%         { opacity: 1; }
+  97.5%         { opacity: 0.97; }
+  99%           { opacity: 1; }
+}
+
+body {
+  animation: lcd-flicker 12s ease-in-out infinite;
 }

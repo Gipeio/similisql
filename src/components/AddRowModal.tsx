@@ -137,7 +137,7 @@ export function AddRowModal({ open, table, session, autoKeyName, onClose, onSubm
                   {col.type}
                 </Badge>
                 {col.fk && (
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono bg-rose-500/10 text-rose-400 border-rose-500/20">
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono bg-[rgba(26,18,8,0.08)] text-[#5A5038] border-[rgba(26,18,8,0.22)] dark:bg-[rgba(212,216,176,0.07)] dark:text-[#8AA870] dark:border-[rgba(212,216,176,0.16)]">
                     → {col.fk.table}.{col.fk.column}
                   </Badge>
                 )}

@@ -367,7 +367,7 @@ export default function App() {
         {/* Logo — blob + titre pixel */}
         <div className="flex items-center gap-2 shrink-0">
           <img src="/favicon.svg" className="h-5 w-auto" alt="similisql" style={{ imageRendering: 'pixelated' }} />
-          <span className="text-[var(--header-fg)] text-[8px] tracking-widest leading-none" style={{ fontFamily: 'var(--font-pixel)' }}>
+          <span className="text-[var(--header-fg)] text-[8px] tracking-widest leading-none lcd-cursor" style={{ fontFamily: 'var(--font-pixel)' }}>
             SIMILISQL
           </span>
         </div>
@@ -384,7 +384,7 @@ export default function App() {
               }`}
               onClick={() => handleTabClick(fn)}
             >
-              <span>{tabLabel(fn)}</span>
+              <span>{fn === activeFilename ? '▶ ' : ''}{tabLabel(fn)}</span>
               <button
                 onClick={e => { e.stopPropagation(); confirmRemoveTable(fn) }}
                 className="opacity-50 hover:opacity-100 transition-opacity"
@@ -467,24 +467,31 @@ export default function App() {
         </div>
       </header>
 
-      <main className="flex-1 p-6">
+      <main className="flex-1 p-6 pb-10">
         {isEmpty ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh] gap-8">
-            <div className="text-center space-y-2">
-              <h1 className="text-2xl font-semibold tracking-tight">Open a file</h1>
-              <p className="text-muted-foreground text-sm">
-                Drop a file or archive, or click the <span className="font-mono">+</span> tab to create a new table
-              </p>
+            <div className="w-full max-w-sm space-y-1" style={{ fontFamily: 'var(--font-pixel)' }}>
+              <p className="text-[6px] text-muted-foreground/40 leading-loose tracking-widest">SIMILISQL OS v0.1.0</p>
+              <p className="text-[6px] text-muted-foreground/30 leading-loose tracking-widest">MEMORY CHECK.......... OK</p>
+              <p className="text-[6px] text-muted-foreground/30 leading-loose tracking-widest">STORAGE DRIVER......... OK</p>
+              <div className="pt-3 space-y-1.5">
+                <p className="text-[6px] text-foreground leading-loose tracking-widest">
+                  {'>'} NO TABLE LOADED<span className="lcd-cursor" />
+                </p>
+                <p className="text-[6px] text-muted-foreground leading-loose tracking-widest">
+                  DROP A FILE BELOW OR PRESS <span className="text-foreground">+</span>
+                </p>
+              </div>
             </div>
             <FileDropZone
               onFile={(content, name) => loadIntoSession(content, name)}
               onZip={handleImportZip}
             />
             <div className="flex items-center gap-3">
-              <Button variant="outline" size="sm" onClick={() => importZipRef.current?.click()}>
+              <Button variant="outline" size="sm" className="font-pixel text-[6px] tracking-widest uppercase" onClick={() => importZipRef.current?.click()}>
                 Import ZIP
               </Button>
-              <Button variant="outline" size="sm" onClick={() => importFolderRef.current?.click()}>
+              <Button variant="outline" size="sm" className="font-pixel text-[6px] tracking-widest uppercase" onClick={() => importFolderRef.current?.click()}>
                 Import folder
               </Button>
             </div>
@@ -513,18 +520,28 @@ export default function App() {
             />
           </div>
         ) : activeTable?.columns.length === 0 ? (
-          <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4">
-            <p className="text-muted-foreground text-sm">Empty file — define columns to get started.</p>
-            <Button onClick={() => setEditColumnsOpen(true)}>
+          <div className="flex flex-col items-center justify-center min-h-[40vh] gap-5">
+            <div className="space-y-1.5" style={{ fontFamily: 'var(--font-pixel)' }}>
+              <p className="text-[6px] text-foreground leading-loose tracking-widest">
+                {'>'} EMPTY TABLE — NO SCHEMA<span className="lcd-cursor" />
+              </p>
+              <p className="text-[6px] text-muted-foreground leading-loose tracking-widest">DEFINE COLUMNS TO GET STARTED</p>
+            </div>
+            <Button onClick={() => setEditColumnsOpen(true)} className="font-pixel text-[6px] tracking-widest uppercase">
               <Columns3 className="w-4 h-4 mr-1.5" />
               Define columns
             </Button>
           </div>
         ) : activeTable ? (
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground font-mono">
-              {activeTable.rows.length} row{activeTable.rows.length !== 1 ? 's' : ''} · {activeTable.columns.length} column{activeTable.columns.length !== 1 ? 's' : ''}
-            </p>
+          <div className="space-y-3">
+            <div className="flex items-baseline gap-4" style={{ fontFamily: 'var(--font-pixel)' }}>
+              <span className="text-[6px] text-foreground tracking-widest">
+                ▼ {activeFilename ? tabLabel(activeFilename).toUpperCase() : ''}
+              </span>
+              <span className="text-[5px] text-muted-foreground tracking-widest">
+                {activeTable.rows.length} ROWS · {activeTable.columns.length} COLS
+              </span>
+            </div>
             <TableView
               table={activeTable}
               highlightRowIndex={highlight}
@@ -700,6 +717,20 @@ export default function App() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Status bar */}
+      <div className="fixed bottom-0 left-0 right-0 h-6 bg-[var(--header-bg)] border-t border-[var(--header-border)] flex items-center px-4 gap-3 z-10 select-none overflow-hidden" style={{ fontFamily: 'var(--font-pixel)' }}>
+        <span className="text-[5px] text-[#3A5020] tracking-widest shrink-0">▶ SIMILISQL</span>
+        <span className="text-[5px] text-[var(--header-border)] tracking-widest flex-1 overflow-hidden whitespace-nowrap opacity-40">
+          {'· '.repeat(80)}
+        </span>
+        {activeTable && activeFilename && (
+          <span className="text-[5px] text-[var(--header-muted)] tracking-widest shrink-0">
+            {tabLabel(activeFilename).toUpperCase()} · {activeTable.rows.length} ROWS · {activeTable.columns.length} COLS
+          </span>
+        )}
+        <span className="text-[5px] text-[#3A5020] tracking-widest shrink-0">{theme === 'dark' ? 'DARK' : 'LCD'}</span>
+      </div>
 
       <Toaster richColors position="bottom-right" />
     </div>

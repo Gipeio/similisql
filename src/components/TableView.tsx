@@ -56,7 +56,7 @@ export function TableView({ table, highlightRowIndex, onEditRow, onDeleteRow, on
                     {col.type}
                   </Badge>
                   {col.fk && (
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono bg-[rgba(34,34,32,0.08)] text-[#9A7848] border-[rgba(34,34,32,0.18)]">
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono bg-[rgba(26,18,8,0.08)] text-[#5A5038] border-[rgba(26,18,8,0.22)] dark:bg-[rgba(212,216,176,0.07)] dark:text-[#8AA870] dark:border-[rgba(212,216,176,0.16)]">
                       → {col.fk.table}.{col.fk.column}
                     </Badge>
                   )}
@@ -84,25 +84,35 @@ export function TableView({ table, highlightRowIndex, onEditRow, onDeleteRow, on
                   className={isHighlighted ? 'bg-[var(--selection-bg)] ring-1 ring-inset ring-[var(--selection-ring)]' : ''}
                 >
                   <TableCell className="py-2.5 pl-3 pr-1">
-                    <div className={`flex items-center gap-0.5 transition-opacity ${hoveredRow === i ? 'opacity-100' : 'opacity-0'}`}>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        tabIndex={-1}
-                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                        onClick={() => onEditRow(i)}
+                    <div className="relative w-[52px] h-7 flex items-center">
+                      {/* Row number — visible when not hovered */}
+                      <span
+                        className={`absolute inset-0 flex items-center transition-opacity text-[5px] text-muted-foreground/40 tracking-widest select-none`}
+                        style={{ fontFamily: 'var(--font-pixel)', opacity: hoveredRow === i ? 0 : 1 }}
                       >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        tabIndex={-1}
-                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                        onClick={() => onDeleteRow(i)}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
+                        {String(i + 1).padStart(2, '0')}
+                      </span>
+                      {/* Edit/delete — visible on hover */}
+                      <div className={`absolute inset-0 flex items-center gap-0.5 transition-opacity ${hoveredRow === i ? 'opacity-100' : 'opacity-0'}`}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          tabIndex={-1}
+                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                          onClick={() => onEditRow(i)}
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          tabIndex={-1}
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          onClick={() => onDeleteRow(i)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                     </div>
                   </TableCell>
                   {table.columns.map(col => (
